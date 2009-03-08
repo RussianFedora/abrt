@@ -1,7 +1,7 @@
 Summary: Automatic bug detection and reporting tool
 Name: abrt
 Version: 0.0.1
-Release: 13%{?dist}
+Release: 14%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/crash-catcher/
@@ -14,6 +14,8 @@ BuildRequires: rpm-devel >= 4.6
 BuildRequires: sqlite-devel > 3.0
 BuildRequires: desktop-file-utils
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+Patch0: abrt-0.0.1-newenum.patch
 
 %description
 %{name} is a tool to help users to detect defects in applications and 
@@ -91,6 +93,7 @@ email.
 
 %prep
 %setup -q
+%patch0 -p1 -b .newenum
 
 %build
 %configure
@@ -179,6 +182,9 @@ fi
 %{_libdir}/%{name}/libMailx.so*
 
 %changelog
+* Sun Mar 08 2009 Caolán McNamara <caolanm@redhat.com> - 0.0.1-14
+- 0 -> RPMFI_NOHEADER enum for new rpmfiNew
+
 * Sat Mar 07 2009 Jesse Keating <jkeating@redhat.com> - 0.0.1-13
 - Bump for new rpm
 
