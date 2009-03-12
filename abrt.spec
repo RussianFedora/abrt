@@ -1,7 +1,7 @@
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 0.0.1
-Release: 14%{?dist}
+Version: 0.0.2
+Release: 1%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/crash-catcher/
@@ -9,13 +9,11 @@ Source: http://jmoskovc.fedorapeople.org/%{name}-%{version}.tar.gz
 Source1: abrt.init
 BuildRequires: dbus-c++-devel
 BuildRequires: gtk2-devel
-BuildRequires: dbus-glib-devel
+BuildRequires: curl-devel
 BuildRequires: rpm-devel >= 4.6
 BuildRequires: sqlite-devel > 3.0
 BuildRequires: desktop-file-utils
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-
-Patch0: abrt-0.0.1-newenum.patch
 
 %description
 %{name} is a tool to help users to detect defects in applications and 
@@ -41,6 +39,7 @@ Development libraries and headers for %{name}.
 Summary: %{name}'s applet
 Group: User Interface/Desktops
 Requires: %{name} = %{version}-%{release}
+Requires: %{name}-gui
 
 %description applet
 Simple systray applet to notify user about new events detected by %{name} 
@@ -63,6 +62,26 @@ Requires: %{name} = %{version}-%{release}
 %description addon-ccpp
 This package contains hook for C/C++ crashed programs and %{name}'s C/C++ 
 language plugin.
+
+%package addon-kerneloops
+Summary: %{name}'s kerneloops addon
+Group: System Environment/Libraries
+Requires: %{name}-plugin-kerneloopsreporter = %{version}-%{release}
+Requires: %{name} = %{version}-%{release}
+
+%description addon-kerneloops
+This package contains hook for kernel crashes information collecting.
+Application plugin.
+
+%package plugin-kerneloopsreporter
+Summary: %{name}'s kerneloops reporter plugin
+Group: System Environment/Libraries
+Requires: curl
+Requires: %{name} = %{version}-%{release}
+
+%description plugin-kerneloopsreporter
+This package contains reporter plugin, that sends, collected by %{name}'s kerneloops
+addon, information about kernel crashes to specified server, e.g. kerneloops.org.
 
 %package plugin-sqlite3
 Summary: %{name}'s SQLite3 database plugin
@@ -93,7 +112,6 @@ email.
 
 %prep
 %setup -q
-%patch0 -p1 -b .newenum
 
 %build
 %configure
@@ -152,7 +170,7 @@ fi
 
 %files applet
 %defattr(-,root,root,-)
-%{_bindir}/cc-applet
+%{_bindir}/%{name}-applet
 
 %files gui
 %defattr(-,root,root,-)
@@ -165,6 +183,17 @@ fi
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/CCpp.conf
 %{_libdir}/%{name}/libCCpp.so*
 %{_libexecdir}/hookCCpp
+
+%files addon-kerneloops
+%defattr(-,root,root,-)
+%config(noreplace) %{_sysconfdir}/%{name}/plugins/Kerneloops.conf
+%{_libdir}/%{name}/libKerneloops.so*
+%{_libexecdir}/hookKerneloops
+
+%files plugin-kerneloopsreporter
+%defattr(-,root,root,-)
+%config(noreplace) %{_sysconfdir}/%{name}/plugins/KerneloopsReporter.conf
+%{_libdir}/%{name}/libKerneloopsReporter.so*
 
 %files plugin-sqlite3
 %defattr(-,root,root,-)
@@ -182,6 +211,27 @@ fi
 %{_libdir}/%{name}/libMailx.so*
 
 %changelog
+* Wed Mar 11 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.2-1
+- new version
+- removed unneeded patch for rpm 4.7
+- added kerneloops addon to rpm (aarapov)
+- added kerneloops addon and plugin (aarapov)
+- Made Crash() private
+- Applet requires gui, removed dbus-glib deps
+- Closing stdout in daemon rhbz#489622
+- Changed applet behaviour according to rhbz#489624
+- Changed gui according to rhbz#489624, fixed dbus timeouts
+- Increased timeout for async dbus calls to 60sec
+- deps cleanup, signal AnalyzeComplete has the crashreport as an argument.
+- Fixed empty package Description.
+- Fixed problem with applet tooltip on x86_64
+- More renaming issues fixed..
+- Changed BR from gtkmm24 to gtk2
+- Fixed saving of user comment
+- Added a progress bar, new Comment entry for user comments..
+- FILENAME_CMDLINE and FILENAME_RELEASE are optional
+- new default path to DB
+
 * Sun Mar 08 2009 Caolán McNamara <caolanm@redhat.com> - 0.0.1-14
 - 0 -> RPMFI_NOHEADER enum for new rpmfiNew
 
