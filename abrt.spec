@@ -1,6 +1,6 @@
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 0.0.2
+Version: 0.0.3
 Release: 1%{?dist}
 License: GPLv2+
 Group: Applications/System
@@ -13,6 +13,10 @@ BuildRequires: curl-devel
 BuildRequires: rpm-devel >= 4.6
 BuildRequires: sqlite-devel > 3.0
 BuildRequires: desktop-file-utils
+BuildRequires: nss-devel
+BuildRequires: libnotify-devel
+BuildRequires: xmlrpc-c-devel
+BuildRequires: file-devel
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 %description
@@ -61,17 +65,17 @@ Requires: %{name} = %{version}-%{release}
 
 %description addon-ccpp
 This package contains hook for C/C++ crashed programs and %{name}'s C/C++ 
-language plugin.
+analyzer plugin.
 
-%package addon-kerneloops
-Summary: %{name}'s kerneloops addon
+%package plugin-kerneloops
+Summary: %{name}'s kerneloops plugin
 Group: System Environment/Libraries
 Requires: %{name}-plugin-kerneloopsreporter = %{version}-%{release}
 Requires: %{name} = %{version}-%{release}
 
-%description addon-kerneloops
-This package contains hook for kernel crashes information collecting.
-Application plugin.
+%description plugin-kerneloops
+This package contains plugin for kernel crashes information collecting.
+analyzer plugin.
 
 %package plugin-kerneloopsreporter
 Summary: %{name}'s kerneloops reporter plugin
@@ -109,6 +113,22 @@ Requires: mailx
 %description plugin-mailx
 The simple reporter plugin, which sends a report via mailx to a specified
 email. 
+
+%package plugin-runapp
+Summary: %{name}'s runapp plugin
+Group: System Environment/Libraries
+Requires: %{name} = %{version}-%{release}
+
+%description plugin-runapp
+Plugin to run external programs.
+
+%package plugin-bugzilla
+Summary: %{name}'s bugzilla plugin
+Group: System Environment/Libraries
+Requires: %{name} = %{version}-%{release}
+
+%description plugin-bugzilla
+Plugin to report bugs into the bugzilla.
 
 %prep
 %setup -q
@@ -184,11 +204,10 @@ fi
 %{_libdir}/%{name}/libCCpp.so*
 %{_libexecdir}/hookCCpp
 
-%files addon-kerneloops
+%files plugin-kerneloops
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Kerneloops.conf
 %{_libdir}/%{name}/libKerneloops.so*
-%{_libexecdir}/hookKerneloops
 
 %files plugin-kerneloopsreporter
 %defattr(-,root,root,-)
@@ -210,10 +229,49 @@ fi
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Mailx.conf
 %{_libdir}/%{name}/libMailx.so*
 
+%files plugin-runapp
+%defattr(-,root,root,-)
+%{_libdir}/%{name}/libRunApp.so*
+
+%files plugin-bugzilla
+%defattr(-,root,root,-)
+%config(noreplace) %{_sysconfdir}/%{name}/plugins/Bugzilla.conf
+%{_libdir}/%{name}/libBugzilla.so*
+
 %changelog
-* Wed Mar 11 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.2-1
+* Fri Apr 10 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.3-1
 - new version
-- removed unneeded patch for rpm 4.7
+- added bz plugin
+- minor fix in reporter gui
+- Configurable max size of debugdump storage rhbz#490889
+- Wrap lines in report to keep the window sane sized
+- Fixed gui for new daemon API
+- removed unneeded code
+- removed dependency on args
+- new guuid hash creating
+- fixed local UUID
+- fixed debuginfo-install checks
+- renamed MW library
+- Added notification thru libnotify
+- fixed parsing settings of action plugins
+- added support for action plugins
+- kerneloops - plugin: fail gracefully.
+- Added commlayer to make dbus optional
+- a lot of kerneloops fixes
+- new approach for getting debuginfos and backtraces
+- fixed unlocking of a debugdump
+- replaced language and application plugins by analyzer plugin
+- more excetpion handling
+- conf file isn't needed
+- Plugin's configuration file is optional
+- Add curl dependency
+- Added column 'user' to the gui
+- Gui: set the newest entry as active (ticket#23)
+- Delete and Report button are no longer active if no entry is selected (ticket#41)
+- Gui refreshes silently (ticket#36)
+- Added error reporting over dbus to daemon, error handling in gui, about dialog
+
+* Wed Mar 11 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.2-1
 - added kerneloops addon to rpm (aarapov)
 - added kerneloops addon and plugin (aarapov)
 - Made Crash() private
@@ -225,18 +283,15 @@ fi
 - deps cleanup, signal AnalyzeComplete has the crashreport as an argument.
 - Fixed empty package Description.
 - Fixed problem with applet tooltip on x86_64
+
+* Wed Mar  4 2009 Jiri Moskovcak <jmoskovc@redhat.com> 0.0.1-13
 - More renaming issues fixed..
 - Changed BR from gtkmm24 to gtk2
 - Fixed saving of user comment
 - Added a progress bar, new Comment entry for user comments..
 - FILENAME_CMDLINE and FILENAME_RELEASE are optional
 - new default path to DB
-
-* Sun Mar 08 2009 Caolán McNamara <caolanm@redhat.com> - 0.0.1-14
-- 0 -> RPMFI_NOHEADER enum for new rpmfiNew
-
-* Sat Mar 07 2009 Jesse Keating <jkeating@redhat.com> - 0.0.1-13
-- Bump for new rpm
+- Rename to abrt
 
 * Tue Mar  3 2009 Jiri Moskovcak <jmoskovc@redhat.com> 0.0.1-12
 - initial fedora release
