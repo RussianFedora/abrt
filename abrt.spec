@@ -1,10 +1,13 @@
+%{!?python_site: %define python_site %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(0)")}
+# platform-dependent
+%{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 0.0.3
-Release: 1%{?dist}
+Version: 0.0.4
+Release: 2%{?dist}
 License: GPLv2+
 Group: Applications/System
-URL: https://fedorahosted.org/crash-catcher/
+URL: https://fedorahosted.org/abrt/
 Source: http://jmoskovc.fedorapeople.org/%{name}-%{version}.tar.gz
 Source1: abrt.init
 BuildRequires: dbus-c++-devel
@@ -17,7 +20,10 @@ BuildRequires: nss-devel
 BuildRequires: libnotify-devel
 BuildRequires: xmlrpc-c-devel
 BuildRequires: file-devel
+BuildRequires: python-devel
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+# gui requirements
+Requires: dbus-python, rhpl, pygtk2, pygtk2-libglade
 
 %description
 %{name} is a tool to help users to detect defects in applications and 
@@ -67,15 +73,15 @@ Requires: %{name} = %{version}-%{release}
 This package contains hook for C/C++ crashed programs and %{name}'s C/C++ 
 analyzer plugin.
 
-%package plugin-kerneloops
-Summary: %{name}'s kerneloops plugin
+%package addon-kerneloops
+Summary: %{name}'s kerneloops addon
 Group: System Environment/Libraries
 Requires: %{name}-plugin-kerneloopsreporter = %{version}-%{release}
 Requires: %{name} = %{version}-%{release}
+Conflicts: kerneloops
 
-%description plugin-kerneloops
-This package contains plugin for kernel crashes information collecting.
-analyzer plugin.
+%description addon-kerneloops
+This package contains plugins for kernel crashes information collecting.
 
 %package plugin-kerneloopsreporter
 Summary: %{name}'s kerneloops reporter plugin
@@ -130,6 +136,32 @@ Requires: %{name} = %{version}-%{release}
 %description plugin-bugzilla
 Plugin to report bugs into the bugzilla.
 
+%package plugin-filetransfer
+Summary: %{name}'s File Transfer plugin
+Group: System Environment/Libraries
+Requires: %{name} = %{version}-%{release}
+
+%description plugin-filetransfer
+Plugin to uploading files to a server.
+
+%package addon-python
+Summary: %{name}'s addon for catching and analyzing Python exceptions
+Group: System Environment/Libraries
+Requires: %{name} = %{version}-%{release}
+
+%description addon-python
+This package contains python hook and python analyzer plugin for hadnling
+uncaught exception in python programs.
+
+%package cli
+Summary: %{name}'s command line interface
+Group: User Interface/Desktops
+Requires: %{name} = %{version}-%{release}
+
+%description cli
+This package contains simple command line client for controling abrt daemon over
+the sockets.
+
 %prep
 %setup -q
 
@@ -141,10 +173,12 @@ make %{?_smp_mflags}
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install DESTDIR=$RPM_BUILD_ROOT
+make install DESTDIR=$RPM_BUILD_ROOT mandir=%{_mandir}
 
-rm -rf $RPM_BUILD_ROOT/%{_libdir}/lib*.la
-rm -rf $RPM_BUILD_ROOT/%{_libdir}/%{name}/lib*.la
+#rm -rf $RPM_BUILD_ROOT/%{_libdir}/lib*.la
+#rm -rf $RPM_BUILD_ROOT/%{_libdir}/%{name}/lib*.la
+# remove all .la and .a files
+find $RPM_BUILD_ROOT -name '*.la' -or -name '*.a' | xargs rm -f
 mkdir -p ${RPM_BUILD_ROOT}/%{_initrddir}
 install -m 755 %SOURCE1 ${RPM_BUILD_ROOT}/%{_initrddir}/%{name}
 mkdir -p $RPM_BUILD_ROOT/var/cache/%{name}
@@ -179,6 +213,9 @@ fi
 %dir %{_sysconfdir}/%{name}
 %dir %{_sysconfdir}/%{name}/plugins
 %dir %{_libdir}/%{name}
+%{_mandir}/man8/%{name}.8.gz
+%{_mandir}/man5/%{name}.conf.5.gz
+%{_mandir}/man7/%{name}-plugins.7.gz
 
 %files libs
 %defattr(-,root,root,-)
@@ -204,41 +241,75 @@ fi
 %{_libdir}/%{name}/libCCpp.so*
 %{_libexecdir}/hookCCpp
 
-%files plugin-kerneloops
+%files addon-kerneloops
 %defattr(-,root,root,-)
-%config(noreplace) %{_sysconfdir}/%{name}/plugins/Kerneloops.conf
+%config(noreplace) %{_sysconfdir}/%{name}/plugins/KerneloopsScanner.conf
 %{_libdir}/%{name}/libKerneloops.so*
+%{_libdir}/%{name}/libKerneloopsScanner.so*
+%{_mandir}/man7/%{name}-KerneloopsScanner.7.gz
 
 %files plugin-kerneloopsreporter
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/KerneloopsReporter.conf
 %{_libdir}/%{name}/libKerneloopsReporter.so*
+%{_mandir}/man7/%{name}-KerneloopsReporter.7.gz
 
 %files plugin-sqlite3
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/SQLite3.conf
 %{_libdir}/%{name}/libSQLite3.so*
+%{_mandir}/man7/%{name}-SQLite3.7.gz
 
 %files plugin-logger
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Logger.conf
 %{_libdir}/%{name}/libLogger.so*
+%{_mandir}/man7/%{name}-Logger.7.gz
 
 %files plugin-mailx
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Mailx.conf
 %{_libdir}/%{name}/libMailx.so*
+%{_mandir}/man7/%{name}-Mailx.7.gz
 
 %files plugin-runapp
 %defattr(-,root,root,-)
 %{_libdir}/%{name}/libRunApp.so*
+%{_mandir}/man7/%{name}-RunApp.7.gz
 
 %files plugin-bugzilla
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Bugzilla.conf
 %{_libdir}/%{name}/libBugzilla.so*
+%{_mandir}/man7/%{name}-Bugzilla.7.gz
+
+%files plugin-filetransfer
+%defattr(-,root,root,-)
+%config(noreplace) %{_sysconfdir}/%{name}/plugins/FileTransfer.conf
+%{_libdir}/%{name}/libFileTransfer.so*
+%{_mandir}/man7/%{name}-FileTransfer.7.gz
+
+%files addon-python
+%defattr(-,root,root,-)
+%config(noreplace) %{_sysconfdir}/%{name}/pyhook.conf
+%{python_sitearch}/ABRTUtils.so
+%{_libdir}/%{name}/libPython.so*
+%{python_site}/*.py*
+
+%files cli
+%defattr(-,root,root,-)
+%{_bindir}/abrt-cli
 
 %changelog
+* Tue Jun 16 2009 Daniel Novotny <dnovotny@redhat.com> 0.0.4-2
+- added manual pages (also for plugins)
+
+* Mon Jun 15 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.4-1
+- new version
+- added cli (only supports sockets)
+- added python hook
+- many fixes
+
 * Fri Apr 10 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.3-1
 - new version
 - added bz plugin
