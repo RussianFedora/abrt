@@ -4,7 +4,7 @@
 Summary: Automatic bug detection and reporting tool
 Name: abrt
 Version: 0.0.4
-Release: 3%{?dist}
+Release: 4%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
@@ -301,6 +301,9 @@ fi
 %{_bindir}/abrt-cli
 
 %changelog
+* Fri Jul 24 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.0.4-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_12_Mass_Rebuild
+
 * Thu Jun 25 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.4-3
 - fixed dependencies in spec file
 
