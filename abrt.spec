@@ -3,8 +3,8 @@
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 0.0.4
-Release: 3%{?dist}
+Version: 0.0.7
+Release: 1%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
@@ -22,10 +22,11 @@ BuildRequires: xmlrpc-c-devel
 BuildRequires: file-devel
 BuildRequires: python-devel
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Requires: %{name}-libs = %{version}-%{release}
 
 %description
-%{name} is a tool to help users to detect defects in applications and 
-to create a bug report with all informations needed by maintainer to fix it. 
+%{name} is a tool to help users to detect defects in applications and
+to create a bug report with all informations needed by maintainer to fix it.
 It uses plugin system to extend its functionality.
 
 %package libs
@@ -43,21 +44,14 @@ Requires: %{name}-libs = %{version}-%{release}
 %description devel
 Development libraries and headers for %{name}.
 
-%package applet
-Summary: %{name}'s applet
-Group: User Interface/Desktops
-Requires: %{name} = %{version}-%{release}
-Requires: %{name}-gui
-
-%description applet
-Simple systray applet to notify user about new events detected by %{name} 
-daemon.
-
 %package gui
 Summary: %{name}'s gui
 Group: User Interface/Desktops
 Requires: %{name} = %{version}-%{release}
-Requires: dbus-python, rhpl, pygtk2, pygtk2-libglade
+Requires: dbus-python, pygtk2, pygtk2-libglade
+Provides: abrt-applet = %{version}-%{release}
+Obsoletes: abrt-applet < 0.0.5
+Conflicts: abrt-applet < 0.0.5
 
 %description gui
 GTK+ wizard for convenient bug reporting.
@@ -69,7 +63,7 @@ Requires: gdb
 Requires: %{name} = %{version}-%{release}
 
 %description addon-ccpp
-This package contains hook for C/C++ crashed programs and %{name}'s C/C++ 
+This package contains hook for C/C++ crashed programs and %{name}'s C/C++
 analyzer plugin.
 
 %package addon-kerneloops
@@ -99,7 +93,7 @@ Group: System Environment/Libraries
 Requires: %{name} = %{version}-%{release}
 
 %description plugin-sqlite3
-This package contains SQLite3 database plugin. It is used for storing the data 
+This package contains SQLite3 database plugin. It is used for storing the data
 required for creating a bug report.
 
 %package plugin-logger
@@ -118,7 +112,7 @@ Requires: mailx
 
 %description plugin-mailx
 The simple reporter plugin, which sends a report via mailx to a specified
-email. 
+email.
 
 %package plugin-runapp
 Summary: %{name}'s runapp plugin
@@ -127,6 +121,15 @@ Requires: %{name} = %{version}-%{release}
 
 %description plugin-runapp
 Plugin to run external programs.
+
+%package plugin-sosreport
+Summary: %{name}'s sosreport plugin
+Group: System Environment/Libraries
+Requires: sos
+Requires: %{name} = %{version}-%{release}
+
+%description plugin-sosreport
+Plugin to include an sosreport in an abrt report.
 
 %package plugin-bugzilla
 Summary: %{name}'s bugzilla plugin
@@ -162,6 +165,17 @@ Requires: %{name} = %{version}-%{release}
 This package contains simple command line client for controling abrt daemon over
 the sockets.
 
+%package desktop
+Summary: Virtual package to install all necessary packages for usage from desktop environment
+Group: User Interface/Desktops
+Requires: %{name} = %{version}-%{release}
+Requires: %{name}-plugin-sqlite3, %{name}-plugin-bugzilla
+Requires: %{name}-gui, %{name}-addon-kerneloops
+Requires: %{name}-addon-ccpp, %{name}-addon-python
+
+%description desktop
+Virtual package to make easy default instalation on desktop environments.
+
 %prep
 %setup -q
 
@@ -186,6 +200,11 @@ mkdir -p $RPM_BUILD_ROOT/var/cache/%{name}
 desktop-file-install \
         --dir ${RPM_BUILD_ROOT}%{_datadir}/applications \
         src/Gui/%{name}.desktop
+
+desktop-file-install \
+        --dir ${RPM_BUILD_ROOT}%{_sysconfdir}/xdg/autostart \
+        src/Applet/%{name}-applet.desktop
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -225,15 +244,13 @@ fi
 %defattr(-,root,root,-)
 %{_libdir}/lib*.so
 
-%files applet
-%defattr(-,root,root,-)
-%{_bindir}/%{name}-applet
-
 %files gui
 %defattr(-,root,root,-)
 %{_bindir}/%{name}-gui
 %{_datadir}/%{name}
 %{_datadir}/applications/%{name}.desktop
+%{_bindir}/%{name}-applet
+%{_sysconfdir}/xdg/autostart/%{name}-applet.desktop
 
 %files addon-ccpp
 %defattr(-,root,root,-)
@@ -244,6 +261,7 @@ fi
 %files addon-kerneloops
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/KerneloopsScanner.conf
+%{_bindir}/dumpoops
 %{_libdir}/%{name}/libKerneloops.so*
 %{_libdir}/%{name}/libKerneloopsScanner.so*
 %{_mandir}/man7/%{name}-KerneloopsScanner.7.gz
@@ -252,6 +270,7 @@ fi
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/KerneloopsReporter.conf
 %{_libdir}/%{name}/libKerneloopsReporter.so*
+%{_libdir}/%{name}/KerneloopsReporter.GTKBuilder
 %{_mandir}/man7/%{name}-KerneloopsReporter.7.gz
 
 %files plugin-sqlite3
@@ -264,12 +283,14 @@ fi
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Logger.conf
 %{_libdir}/%{name}/libLogger.so*
+%{_libdir}/%{name}/Logger.GTKBuilder
 %{_mandir}/man7/%{name}-Logger.7.gz
 
 %files plugin-mailx
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Mailx.conf
 %{_libdir}/%{name}/libMailx.so*
+%{_libdir}/%{name}/Mailx.GTKBuilder
 %{_mandir}/man7/%{name}-Mailx.7.gz
 
 %files plugin-runapp
@@ -277,10 +298,15 @@ fi
 %{_libdir}/%{name}/libRunApp.so*
 %{_mandir}/man7/%{name}-RunApp.7.gz
 
+%files plugin-sosreport
+%defattr(-,root,root,-)
+%{_libdir}/%{name}/libSOSreport.so*
+
 %files plugin-bugzilla
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Bugzilla.conf
 %{_libdir}/%{name}/libBugzilla.so*
+%{_libdir}/%{name}/Bugzilla.GTKBuilder
 %{_mandir}/man7/%{name}-Bugzilla.7.gz
 
 %files plugin-filetransfer
@@ -300,7 +326,21 @@ fi
 %defattr(-,root,root,-)
 %{_bindir}/abrt-cli
 
+%files desktop
+%defattr(-,root,root,-)
+
 %changelog
+* Tue Aug 18 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.7-1
+- new version
+- added status window to show user some info after reporting a bug
+
+* Mon Aug 17 2009  Denys Vlasenko <dvlasenk@redhat.com> 0.0.6-1
+- new version
+- many fixes
+
+* Fri Jul 24 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.0.4-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_12_Mass_Rebuild
+
 * Thu Jun 25 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.4-3
 - fixed dependencies in spec file
 
