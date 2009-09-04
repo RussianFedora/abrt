@@ -3,13 +3,14 @@
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 0.0.8
+Version: 0.0.8.5
 Release: 1%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
 Source: http://jmoskovc.fedorapeople.org/%{name}-%{version}.tar.gz
 Source1: abrt.init
+BuildRequires: dbus-devel
 BuildRequires: dbus-c++-devel
 BuildRequires: gtk2-devel
 BuildRequires: curl-devel
@@ -56,6 +57,7 @@ Requires: dbus-python, pygtk2, pygtk2-libglade,gnome-python2-gnomevfs
 Provides: abrt-applet = %{version}-%{release}
 Obsoletes: abrt-applet < 0.0.5
 Conflicts: abrt-applet < 0.0.5
+Obsoletes: bug-buddy
 
 %description gui
 GTK+ wizard for convenient bug reporting.
@@ -75,7 +77,7 @@ Summary: %{name}'s kerneloops addon
 Group: System Environment/Libraries
 Requires: %{name}-plugin-kerneloopsreporter = %{version}-%{release}
 Requires: %{name} = %{version}-%{release}
-Conflicts: kerneloops
+Obsoletes: kerneloops
 Obsoletes: abrt-plugin-kerneloops
 
 %description addon-kerneloops
@@ -199,7 +201,7 @@ make install DESTDIR=$RPM_BUILD_ROOT mandir=%{_mandir}
 # remove all .la and .a files
 find $RPM_BUILD_ROOT -name '*.la' -or -name '*.a' | xargs rm -f
 mkdir -p ${RPM_BUILD_ROOT}/%{_initrddir}
-install -m 755 %SOURCE1 ${RPM_BUILD_ROOT}/%{_initrddir}/%{name}
+install -m 755 %SOURCE1 ${RPM_BUILD_ROOT}/%{_initrddir}/abrtd
 mkdir -p $RPM_BUILD_ROOT/var/cache/%{name}
 
 desktop-file-install \
@@ -214,14 +216,14 @@ desktop-file-install \
 rm -rf $RPM_BUILD_ROOT
 
 %post
-/sbin/chkconfig --add %{name}
+/sbin/chkconfig --add %{name}d
 
 %post libs -p /sbin/ldconfig
 
 %preun
-if [ "$1" = 0 ] ; then
-  service %{name} stop >/dev/null 2>&1
-  /sbin/chkconfig --del %{name}
+if [ "$1" -eq "0" ] ; then
+  service %{name}d stop >/dev/null 2>&1
+  /sbin/chkconfig --del %{name}d
 fi
 
 %postun libs -p /sbin/ldconfig
@@ -229,10 +231,10 @@ fi
 %files -f %{name}.lang
 %defattr(-,root,root,-)
 %doc README COPYING
-%{_sbindir}/%{name}
+%{_sbindir}/%{name}d
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/dbus-%{name}.conf
-%{_initrddir}/%{name}
+%{_initrddir}/%{name}d
 %dir /var/cache/%{name}
 %dir %{_sysconfdir}/%{name}
 %dir %{_sysconfdir}/%{name}/plugins
@@ -335,6 +337,22 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Fri Sep  4 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.8.5-1
+- new version
+- APPLET: added about dialog, removed popup, if icon is not visible, fixed (trac#43) (jmoskovc@redhat.com)
+- renamed abrt to abrtd, few minor spec file fixes (jmoskovc@redhat.com)
+- Made abrt service start by deafult (jmoskovc@redhat.com)
+- add gettext support for all plugins (npajkovs@redhat.com)
+- APPLET: removed the warning bubble about not running abrt service (walters)
+- APPLET: changed tooltip rhbz#520293 (jmoskovc@redhat.com)
+- CommLayerServerDBus: rewrote to use dbus, not dbus-c++ (vda.linux@googlemail.com)
+- fixed timeout on boot causing [ FAILED ] message (vda.linux@googlemail.com)
+- and many other fixes
+
+* Wed Sep 02 2009  Colin Walters <watlers@verbum.org> 0.0.8-2
+- Change Conflicts: kerneloops to be an Obsoletes so we do the right thing
+  on upgrades.  Also add an Obsoletes: bug-buddy.
+
 * Wed Aug 26 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.8-1
 - new version
 - resolved: Bug 518420 -  ordinary user's abrt-applet shows up for root owned crashes (npajkovs)

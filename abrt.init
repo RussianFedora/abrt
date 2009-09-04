@@ -1,15 +1,16 @@
 #!/bin/bash
 # Starts the abrt daemon
 #
-# chkconfig: - 82 16
+# chkconfig: 35 82 16
 # description: Daemon to detect crashing apps
-# processname: abrt
+# processname: abrtd
 ### BEGIN INIT INFO
 # Provides: abrt
 # Required-Start: $syslog $local_fs
 # Required-Stop: $syslog $local_fs
-# Default-Stop: 0 1 2 3 4 5 6
-# Short-Description: start and stop crash-carcher daemon
+# Default-Stop: 0 1 2 6
+# Default-Start: 3 5
+# Short-Description: start and stop abrt daemon
 # Description: Listen and dispatch crash events
 ### END INIT INFO
 
@@ -25,22 +26,22 @@ RETVAL=0
 check() {
 	# Check that we're a privileged user
 	[ `id -u` = 0 ] || exit 4
-	
+
 	# Check if abrt is executable
-	test -x /usr/sbin/abrt || exit 5
+	test -x /usr/sbin/abrtd || exit 5
 }
 
 start() {
 
 	check
-	
+
 	# Check if it is already running
 	if [ ! -f /var/lock/subsys/abrt ]; then
-		echo -n $"Starting abrt daemon: "	
-	    daemon /usr/sbin/abrt
-	    RETVAL=$?
-	    [ $RETVAL -eq 0 ] && touch /var/lock/subsys/abrt
-	    echo
+		echo -n $"Starting abrt daemon: "
+		daemon /usr/sbin/abrtd
+		RETVAL=$?
+		[ $RETVAL -eq 0 ] && touch /var/lock/subsys/abrt
+		echo
 	fi
 	return $RETVAL
 }
@@ -48,24 +49,24 @@ start() {
 stop() {
 
 	check
-	
+
 	echo -n $"Stopping abrt daemon: "
-	killproc /usr/sbin/abrt
+	killproc /usr/sbin/abrtd
 	RETVAL=$?
 	[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/abrt
 	echo
-    return $RETVAL
+	return $RETVAL
 }
 
 
 restart() {
 	stop
 	start
-}	
+}
 
 reload() {
 	restart
-}	
+}
 
 case "$1" in
 start)
