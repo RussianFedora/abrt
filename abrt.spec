@@ -3,8 +3,8 @@
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 0.0.9
-Release: 2%{?dist}
+Version: 0.0.10
+Release: 1%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
@@ -24,6 +24,7 @@ BuildRequires: python-devel
 BuildRequires: gettext
 BuildRequires: nss-devel
 BuildRequires: polkit-devel
+BuildRequires: libzip-devel, libtar-devel, bzip2-devel, zlib-devel
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires: %{name}-libs = %{version}-%{release}
 
@@ -51,7 +52,8 @@ Development libraries and headers for %{name}.
 Summary: %{name}'s gui
 Group: User Interface/Desktops
 Requires: %{name} = %{version}-%{release}
-Requires: dbus-python, pygtk2, pygtk2-libglade,gnome-python2-gnomevfs
+Requires: dbus-python, pygtk2, pygtk2-libglade,
+Requires: gnome-python2-gnomevfs, gnome-python2-gnomekeyring
 # only if gtk2 version < 2.17
 #Requires: python-sexy
 Provides: abrt-applet = %{version}-%{release}
@@ -248,10 +250,12 @@ fi
 %dir %{_sysconfdir}/%{name}
 %dir %{_sysconfdir}/%{name}/plugins
 %dir %{_libdir}/%{name}
-%{_mandir}/man8/%{name}.8.gz
+%{_mandir}/man8/abrtd.8.gz
 %{_mandir}/man5/%{name}.conf.5.gz
+%{_mandir}/man5/pyhook.conf.5.gz
 %{_mandir}/man7/%{name}-plugins.7.gz
 %{_datadir}/polkit-1/actions/org.fedoraproject.abrt.policy
+%{_datadir}/dbus-1/system-services/com.redhat.abrt.service
 
 %files libs
 %defattr(-,root,root,-)
@@ -354,7 +358,31 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
-* Wed Sep 23 2009  jiri Moskovcak <jmoskovc@redhat.com> 0.0.9-2
+* Thu Oct 15 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.10-1
+- new version
+- added more logging (vda.linux@googlemail.com)
+- made polkit policy to be more permissive when installing debuginfo (jmoskovc@redhat.com)
+- lib/Plugins/CCpp.cpp: add build-ids to backtrace (vda.linux@googlemail.com)
+- lib/Plugins/CCpp.cpp: do not use temp file for gdb commands - use -ex CMD instead (vda.linux@googlemail.com)
+- GUI: added refresh button, added sanity check to plugin settings (jmoskovc@redhat.com)
+- Initial man page for abrt-cli (kklic@redhat.com)
+- Added --version, -V, --help, -? options. Fixed crash caused by unknown option. (kklic@redhat.com)
+- Date/time honors current system locale (kklic@redhat.com)
+- fixed saving/reading user config (jmoskovc@redhat.com)
+- SPEC: added gnome-python2-gnomekeyring to requirements (jmoskovc@redhat.com)
+- GUI: call Report() with the latest pluginsettings (jmoskovc@redhat.com)
+- Fix Bug 526220 -  [abrt] crash detected in abrt-gui-0.0.9-2.fc12 (vda.linux@googlemail.com)
+- removed unsecure reading/writting from ~HOME directory rhbz#522878 (jmoskovc@redhat.com)
+- error checking added to archive creation (danny@rawhide.localdomain)
+- try using pk-debuginfo-install before falling back to debuginfo-install (vda.linux@googlemail.com)
+- abrt-gui: make "report" toolbar button work even if abrtd is not running (vda.linux@googlemail.com)
+- set LIMIT_MESSAGE to 16k, typo fix and daemon now reads config information from dbus (npajkovs@redhat.com)
+- add support for abrtd autostart (vda.linux@googlemail.com)
+- GUI: reversed the dumplist, so the latest crashes are at the top (jmoskovc@redhat.com)
+- rewrite FileTransfer to use library calls instead of commandline calls for compression (dnovotny@redhat.com)
+- and many minor fixes ..
+
+* Wed Sep 23 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.9-2
 - added bug-buddy to provides rhbz#524934
 
 * Tue Sep 22 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.9-1
