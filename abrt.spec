@@ -4,7 +4,7 @@
 Summary: Automatic bug detection and reporting tool
 Name: abrt
 Version: 0.0.10
-Release: 1%{?dist}
+Release: 2%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
@@ -358,6 +358,9 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Fri Oct 16 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.10-2
+- bump release
+
 * Thu Oct 15 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.10-1
 - new version
 - added more logging (vda.linux@googlemail.com)
