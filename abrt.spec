@@ -4,7 +4,7 @@
 Summary: Automatic bug detection and reporting tool
 Name: abrt
 Version: 0.0.11
-Release: 1%{?dist}
+Release: 2%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
@@ -61,6 +61,8 @@ Obsoletes: abrt-applet < 0.0.5
 Conflicts: abrt-applet < 0.0.5
 Obsoletes: bug-buddy
 Provides: bug-buddy
+# workaround for broken upgrade, remove!
+Requires: abrt-desktop
 
 %description gui
 GTK+ wizard for convenient bug reporting.
@@ -197,7 +199,8 @@ Summary: Virtual package to install all necessary packages for usage from deskto
 Group: User Interface/Desktops
 Requires: %{name} = %{version}-%{release}
 Requires: %{name}-plugin-sqlite3, %{name}-plugin-bugzilla, %{name}-plugin-logger
-Requires: %{name}-gui
+#workaround for broken upgrade, remove!
+#Requires: %{name}-gui
 Requires: %{name}-addon-kerneloops
 Requires: %{name}-addon-ccpp, %{name}-addon-python
 
@@ -392,6 +395,9 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Tue Nov 10 2009 Jiri Moskovcak <jmoskovc@redhat.com> 0.0.11-2
+- spec file fixes
+
 * Mon Nov  2 2009  Jiri Moskovcak <jmoskovc@redhat.com> 0.0.11-1
 - re-enabled kerneloops
 - abrt-debuginfo-install: download packages one-by-one - better logging (vda.linux@googlemail.com)
