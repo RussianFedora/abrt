@@ -3,8 +3,8 @@
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 0.0.11
-Release: 2%{?dist}
+Version: 1.0.0
+Release: 1%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
@@ -25,8 +25,10 @@ BuildRequires: gettext
 BuildRequires: nss-devel
 BuildRequires: polkit-devel
 BuildRequires: libzip-devel, libtar-devel, bzip2-devel, zlib-devel
+BuildRequires: intltool
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires: %{name}-libs = %{version}-%{release}
+Requires(pre): /usr/sbin/groupadd 
 
 %description
 %{name} is a tool to help users to detect defects in applications and
@@ -61,7 +63,7 @@ Obsoletes: abrt-applet < 0.0.5
 Conflicts: abrt-applet < 0.0.5
 Obsoletes: bug-buddy
 Provides: bug-buddy
-# workaround for broken upgrade, remove!
+#FIXME: upgrade workaround
 Requires: abrt-desktop
 
 %description gui
@@ -78,6 +80,17 @@ Requires: %{name} = %{version}-%{release}
 %description addon-ccpp
 This package contains hook for C/C++ crashed programs and %{name}'s C/C++
 analyzer plugin.
+
+#%package plugin-firefox
+#Summary: %{name}'s Firefox analyzer plugin
+#Group: System Environment/Libraries
+#Requires: gdb >= 7.0-3
+#Requires: elfutils
+#Requires: yum-utils
+#Requires: %{name} = %{version}-%{release}
+
+#%description plugin-firefox
+#This package contains hook for Firefox
 
 %package addon-kerneloops
 Summary: %{name}'s kerneloops addon
@@ -203,6 +216,7 @@ Requires: %{name}-plugin-sqlite3, %{name}-plugin-bugzilla, %{name}-plugin-logger
 #Requires: %{name}-gui
 Requires: %{name}-addon-kerneloops
 Requires: %{name}-addon-ccpp, %{name}-addon-python
+#Requires: %{name}-plugin-firefox
 
 %description desktop
 Virtual package to make easy default instalation on desktop environments.
@@ -244,6 +258,9 @@ desktop-file-install \
 %clean
 rm -rf $RPM_BUILD_ROOT
 
+%pre
+/usr/sbin/groupadd -f --system abrt
+
 %post
 /sbin/chkconfig --add %{name}d
 
@@ -270,7 +287,7 @@ fi
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/dbus-%{name}.conf
 %{_initrddir}/%{name}d
-%dir /var/cache/%{name}
+%dir %attr(0775, root, abrt) /var/cache/%{name}
 %dir /var/cache/%{name}-di
 %dir /var/run/%{name}
 %dir %{_sysconfdir}/%{name}
@@ -297,6 +314,7 @@ fi
 %{_datadir}/%{name}
 %{_datadir}/applications/fedora-%{name}.desktop
 %{_datadir}/pixmaps/abrt.png
+%{_datadir}/icons/hicolor/48x48/apps/*.png
 %{_bindir}/%{name}-applet
 %{_sysconfdir}/xdg/autostart/%{name}-applet.desktop
 
@@ -306,8 +324,12 @@ fi
 %{_libdir}/%{name}/libCCpp.so*
 %{_libexecdir}/hookCCpp
 
+#%files plugin-firefox
+#%{_libdir}/%{name}/libFirefox.so*
+
 %files addon-kerneloops
 %defattr(-,root,root,-)
+%config(noreplace) %{_sysconfdir}/%{name}/plugins/Kerneloops.conf
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/KerneloopsScanner.conf
 %{_bindir}/dumpoops
 %{_libdir}/%{name}/libKerneloops.so*
@@ -379,9 +401,9 @@ fi
 
 %files addon-python
 %defattr(-,root,root,-)
-%{_bindir}/%{name}-pyhook-helper
+%attr(2755, root, abrt) %{_bindir}/%{name}-pyhook-helper
 %config(noreplace) %{_sysconfdir}/%{name}/pyhook.conf
-%{python_sitearch}/ABRTUtils.so
+#%{python_sitearch}/ABRTUtils.so
 %{_libdir}/%{name}/libPython.so*
 %{python_site}/*.py*
 
@@ -395,6 +417,35 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Fri Nov 20 2009  Jiri Moskovcak <jmoskovc@redhat.com> 1.0.0-1
+- new version
+- comment input wraps words rhbz#531276
+- fixed hiding password dialog rhbz#529583
+- easier kerneloops reporting rhbz#528395
+- made menu entry translatable rhbz#536878 (jmoskovc@redhat.com)
+- GUI: don't read the g-k every time we want to use the setting (jmoskovc@redhat.com)
+- GUI: survive if g-k access is denied rhbz#534171 (jmoskovc@redhat.com)
+- include more info into oops (we were losing the stack dump) (vda.linux@googlemail.com)
+- make BZ insert small text attachments inline; move text file detection code (vda.linux@googlemail.com)
+- GUI: fixed text wrapping in comment field rhbz#531276 (jmoskovc@redhat.com)
+- GUI: added cancel to send dialog rhbz#537238 (jmoskovc@redhat.com)
+- include abrt version in bug descriptions (vda.linux@googlemail.com)
+- ccpp hook: implemented ReadonlyLocalDebugInfoDirs directive (vda.linux@googlemail.com)
+- GUI: added window icon rhbz#537240 (jmoskovc@redhat.com)
+- add support for \" escaping in config file (vda.linux@googlemail.com)
+- add experimental saving of /var/log/Xorg*.log for X crashes (vda.linux@googlemail.com)
+- APPLET: changed icon from default gtk-warning to abrt specific, add animation (jmoskovc@redhat.com)
+- don't show icon on abrtd start/stop rhbz#537630 (jmoskovc@redhat.com)
+- /var/cache/abrt permissions 1775 -> 0775 in spec file (kklic@redhat.com)
+- Daemon properly checks /var/cache/abrt attributes (kklic@redhat.com)
+- abrt user group; used by abrt-pyhook-helper (kklic@redhat.com)
+- pyhook-helper: uid taken from system instead of command line (kklic@redhat.com)
+- KerneloopsSysLog: fix breakage in code which detects abrt marker (vda.linux@googlemail.com)
+- GUI: added support for backtrace rating (jmoskovc@redhat.com)
+- InformAllUsers support. enabled by default for Kerneloops. Tested wuth CCpp. (vda.linux@googlemail.com)
+- abrtd: call res_init() if /etc/resolv.conf or friends were changed rhbz#533589 (vda.linux@googlemail.com)
+- supress errors in python hook to not colide with the running script (jmoskovc@redhat.com)
+
 * Tue Nov 10 2009 Jiri Moskovcak <jmoskovc@redhat.com> 0.0.11-2
 - spec file fixes
 
