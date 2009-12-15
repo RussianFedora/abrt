@@ -3,7 +3,7 @@
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 1.0.0
+Version: 1.0.2
 Release: 1%{?dist}
 License: GPLv2+
 Group: Applications/System
@@ -26,9 +26,11 @@ BuildRequires: nss-devel
 BuildRequires: polkit-devel
 BuildRequires: libzip-devel, libtar-devel, bzip2-devel, zlib-devel
 BuildRequires: intltool
+BuildRequires: bison
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires: %{name}-libs = %{version}-%{release}
-Requires(pre): /usr/sbin/groupadd 
+Requires(pre): shadow-utils
+Obsoletes: abrt-plugin-sqlite3
 
 %description
 %{name} is a tool to help users to detect defects in applications and
@@ -56,15 +58,12 @@ Group: User Interface/Desktops
 Requires: %{name} = %{version}-%{release}
 Requires: dbus-python, pygtk2, pygtk2-libglade,
 Requires: gnome-python2-gnomevfs, gnome-python2-gnomekeyring
-# only if gtk2 version < 2.17
+# only if gtk2 version < 2.17:
 #Requires: python-sexy
+# we used to have abrt-applet, now abrt-gui includes it:
 Provides: abrt-applet = %{version}-%{release}
 Obsoletes: abrt-applet < 0.0.5
 Conflicts: abrt-applet < 0.0.5
-Obsoletes: bug-buddy
-Provides: bug-buddy
-#FIXME: upgrade workaround
-Requires: abrt-desktop
 
 %description gui
 GTK+ wizard for convenient bug reporting.
@@ -95,32 +94,16 @@ analyzer plugin.
 %package addon-kerneloops
 Summary: %{name}'s kerneloops addon
 Group: System Environment/Libraries
-Requires: %{name}-plugin-kerneloopsreporter = %{version}-%{release}
+Requires: curl
 Requires: %{name} = %{version}-%{release}
 Obsoletes: kerneloops
 Obsoletes: abrt-plugin-kerneloops
+Obsoletes: abrt-plugin-kerneloopsreporter
 
 %description addon-kerneloops
-This package contains plugins for kernel crashes information collecting.
-
-%package plugin-kerneloopsreporter
-Summary: %{name}'s kerneloops reporter plugin
-Group: System Environment/Libraries
-Requires: curl
-Requires: %{name} = %{version}-%{release}
-
-%description plugin-kerneloopsreporter
-This package contains reporter plugin, that sends, collected by %{name}'s kerneloops
-addon, information about kernel crashes to specified server, e.g. kerneloops.org.
-
-%package plugin-sqlite3
-Summary: %{name}'s SQLite3 database plugin
-Group: System Environment/Libraries
-Requires: %{name} = %{version}-%{release}
-
-%description plugin-sqlite3
-This package contains SQLite3 database plugin. It is used for storing the data
-required for creating a bug report.
+This package contains plugin for collecting kernel crash information
+and reporter plugin which sends this information to specified server,
+usually to kerneloops.org.
 
 %package plugin-logger
 Summary: %{name}'s logger reporter plugin
@@ -128,7 +111,7 @@ Group: System Environment/Libraries
 Requires: %{name} = %{version}-%{release}
 
 %description plugin-logger
-The simple reporter plugin, which writes a report to a specified file.
+The simple reporter plugin which writes a report to a specified file.
 
 %package plugin-mailx
 Summary: %{name}'s mailx reporter plugin
@@ -137,8 +120,8 @@ Requires: %{name} = %{version}-%{release}
 Requires: mailx
 
 %description plugin-mailx
-The simple reporter plugin, which sends a report via mailx to a specified
-email.
+The simple reporter plugin which sends a report via mailx to a specified
+email address.
 
 %package plugin-runapp
 Summary: %{name}'s runapp plugin
@@ -210,13 +193,19 @@ the sockets.
 %package desktop
 Summary: Virtual package to install all necessary packages for usage from desktop environment
 Group: User Interface/Desktops
+# This package gets installed when anything requests bug-buddy -
+# happens when users upgrade Fn to Fn+1;
+# or if user just wants "typical desktop installation".
+# Installing abrt-desktop should result in the abrt which works without
+# any tweaking in abrt.conf (IOW: all plugins mentioned there must be installed)
 Requires: %{name} = %{version}-%{release}
-Requires: %{name}-plugin-sqlite3, %{name}-plugin-bugzilla, %{name}-plugin-logger
-#workaround for broken upgrade, remove!
-#Requires: %{name}-gui
 Requires: %{name}-addon-kerneloops
 Requires: %{name}-addon-ccpp, %{name}-addon-python
+Requires: %{name}-gui
+Requires: %{name}-plugin-bugzilla, %{name}-plugin-logger, %{name}-plugin-runapp
 #Requires: %{name}-plugin-firefox
+Obsoletes: bug-buddy
+Provides: bug-buddy
 
 %description desktop
 Virtual package to make easy default instalation on desktop environments.
@@ -259,7 +248,8 @@ desktop-file-install \
 rm -rf $RPM_BUILD_ROOT
 
 %pre
-/usr/sbin/groupadd -f --system abrt
+getent group abrt >/dev/null || groupadd -f --system abrt
+exit 0
 
 %post
 /sbin/chkconfig --add %{name}d
@@ -284,21 +274,24 @@ fi
 %doc README COPYING
 %{_sbindir}/%{name}d
 %{_bindir}/%{name}-debuginfo-install
+%{_bindir}/%{name}-backtrace
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/dbus-%{name}.conf
 %{_initrddir}/%{name}d
-%dir %attr(0775, root, abrt) /var/cache/%{name}
-%dir /var/cache/%{name}-di
+%dir %attr(0775, root, abrt) %{_localstatedir}/cache/%{name}
 %dir /var/run/%{name}
 %dir %{_sysconfdir}/%{name}
 %dir %{_sysconfdir}/%{name}/plugins
 %dir %{_libdir}/%{name}
 %{_mandir}/man8/abrtd.8.gz
 %{_mandir}/man5/%{name}.conf.5.gz
-%{_mandir}/man5/pyhook.conf.5.gz
+#%{_mandir}/man5/pyhook.conf.5.gz
 %{_mandir}/man7/%{name}-plugins.7.gz
 %{_datadir}/polkit-1/actions/org.fedoraproject.abrt.policy
 %{_datadir}/dbus-1/system-services/com.redhat.abrt.service
+%config(noreplace) %{_sysconfdir}/%{name}/plugins/SQLite3.conf
+%{_libdir}/%{name}/libSQLite3.so*
+%{_mandir}/man7/%{name}-SQLite3.7.gz
 
 %files libs
 %defattr(-,root,root,-)
@@ -321,8 +314,9 @@ fi
 %files addon-ccpp
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/CCpp.conf
+%dir %{_localstatedir}/cache/%{name}-di
 %{_libdir}/%{name}/libCCpp.so*
-%{_libexecdir}/hookCCpp
+%{_libexecdir}/abrt-hook-ccpp
 
 #%files plugin-firefox
 #%{_libdir}/%{name}/libFirefox.so*
@@ -330,24 +324,13 @@ fi
 %files addon-kerneloops
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Kerneloops.conf
-%config(noreplace) %{_sysconfdir}/%{name}/plugins/KerneloopsScanner.conf
 %{_bindir}/dumpoops
 %{_libdir}/%{name}/libKerneloops.so*
 %{_libdir}/%{name}/libKerneloopsScanner.so*
 %{_mandir}/man7/%{name}-KerneloopsScanner.7.gz
-
-%files plugin-kerneloopsreporter
-%defattr(-,root,root,-)
-%config(noreplace) %{_sysconfdir}/%{name}/plugins/KerneloopsReporter.conf
 %{_libdir}/%{name}/libKerneloopsReporter.so*
 %{_libdir}/%{name}/KerneloopsReporter.GTKBuilder
 %{_mandir}/man7/%{name}-KerneloopsReporter.7.gz
-
-%files plugin-sqlite3
-%defattr(-,root,root,-)
-%config(noreplace) %{_sysconfdir}/%{name}/plugins/SQLite3.conf
-%{_libdir}/%{name}/libSQLite3.so*
-%{_mandir}/man7/%{name}-SQLite3.7.gz
 
 %files plugin-logger
 %defattr(-,root,root,-)
@@ -401,9 +384,7 @@ fi
 
 %files addon-python
 %defattr(-,root,root,-)
-%attr(2755, root, abrt) %{_bindir}/%{name}-pyhook-helper
-%config(noreplace) %{_sysconfdir}/%{name}/pyhook.conf
-#%{python_sitearch}/ABRTUtils.so
+%attr(2755, root, abrt) %{_libexecdir}/abrt-hook-python
 %{_libdir}/%{name}/libPython.so*
 %{python_site}/*.py*
 
@@ -417,6 +398,46 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Mon Dec 14 2009  Jiri Moskovcak <jmoskovc@redhat.com> 1.0.2-1
+- disabled GPG check again (jmoskovc@redhat.com)
+- abrt-pyhook-helper rename (vda.linux@googlemail.com)
+- abrt-cli: report success/failure of reporting. closes bug 71 (vda.linux@googlemail.com)
+- less logging (vda.linux@googlemail.com)
+- mkde abrt-gui --help and --version behave as expected. closes bug 85 (vda.linux@googlemail.com)
+- dbus lib: fix parsing of 0-element arrays. Fixes bug 95 (vda.linux@googlemail.com)
+- make "abrt-cli --delete randomuuid" report that deletion failed. closes bug 59 (vda.linux@googlemail.com)
+- applet: make animation stop after 1 minute. (closes bug 108) (vda.linux@googlemail.com)
+- show comment and how to reproduce fields, when BT rating > 3 (jmoskovc@redhat.com)
+- Gui: make report status window's text wrap. Fixes bug 82 (vda.linux@googlemail.com)
+- CCpp analyzer: added "info sharedlib" (https://fedorahosted.org/abrt/ticket/90) (vda.linux@googlemail.com)
+- added link to bugzilla new account page to Bugzilla config dialog (jmoskovc@redhat.com)
+- GUI: added log window (jmoskovc@redhat.com)
+
+* Tue Dec  8 2009  Jiri Moskovcak <jmoskovc@redhat.com> 1.0.1-1
+- PyHook: better logic for checking if abrtd is running rhbz#539987 (jmoskovc@redhat.com)
+- re-enabled gpg sign checking (jmoskovc@redhat.com)
+- PyHook: use repr() for displaying variables rhbz#545070 (jmoskovc@redhat.com)
+- kerneloops: fix the linux kernel version identification (aarapov@redhat.com)
+- gui review (rrakus@redhat.com)
+- when we trim the dir, we must delete it from DB too rhbz#541854 (vda.linux@googlemail.com)
+- improved dupe checking (kklic@redhat.com)
+- GUI: handle cases when gui fails to start daemon on demand rhbz#543725 (jmoskovc@redhat.com)
+- Add abrt group only if it is missing; fixes rhbz#543250 (kklic@redhat.com)
+- GUI: more string fixes rhbz#543266 (jmoskovc@redhat.com)
+- abrt.spec: straighten out relations between abrt-desktop and abrt-gui (vda.linux@googlemail.com)
+- refuse to start if some required plugins are missing rhbz#518422 (vda.linux@googlemail.com)
+- GUI: survive gnome-keyring access denial rhbz#543200 (jmoskovc@redhat.com)
+- typo fixes rhbz#543266 (jmoskovc@redhat.com)
+- abrt-debuginfo-install: better fix for incorrect passing double quotes (vda.linux@googlemail.com)
+- APPLET: stop animation when it's not needed rhbz#542157 (jmoskovc@redhat.com)
+- ccpp hook: reanme it, and add "crash storm protection" (see rhbz#542003) (vda.linux@googlemail.com)
+- Hooks/CCpp.cpp: add MakeCompatCore = yes/no directive. Fixes rhbz#541707 (vda.linux@googlemail.com)
+- SPEC: removed sqlite3 package, fixed some update problems (jmoskovc@redhat.com)
+- Kerneloops are reported automaticky now when AutoReportUIDs = root is in Kerneloops.conf (npajkovs@redhat.com)
+- remove word 'detected' from description rhbz#541459 (vda.linux@googlemail.com)
+- src/Hooks/CCpp.cpp: do save abrtd's own coredumps, but carefully... (vda.linux@googlemail.com)
+- CCpp.cpp: quote parameters if needed rhbz#540164 (vda.linux@googlemail.com)
+
 * Fri Nov 20 2009  Jiri Moskovcak <jmoskovc@redhat.com> 1.0.0-1
 - new version
 - comment input wraps words rhbz#531276
