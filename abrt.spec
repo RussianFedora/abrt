@@ -3,7 +3,7 @@
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 1.0.4
+Version: 1.0.6
 Release: 1%{?dist}
 License: GPLv2+
 Group: Applications/System
@@ -176,16 +176,19 @@ Group: System Environment/Libraries
 Requires: %{name} = %{version}-%{release}
 
 %description addon-python
-This package contains python hook and python analyzer plugin for hadnling
+This package contains python hook and python analyzer plugin for handling
 uncaught exception in python programs.
 
 %package cli
 Summary: %{name}'s command line interface
 Group: User Interface/Desktops
 Requires: %{name} = %{version}-%{release}
+Requires: %{name}-addon-kerneloops
+Requires: %{name}-addon-ccpp, %{name}-addon-python
+Requires: %{name}-plugin-bugzilla, %{name}-plugin-logger, %{name}-plugin-runapp
 
 %description cli
-This package contains simple command line client for controling abrt daemon over
+This package contains simple command line client for controlling abrt daemon over
 the sockets.
 
 %package desktop
@@ -208,7 +211,7 @@ Obsoletes: bug-buddy
 Provides: bug-buddy
 
 %description desktop
-Virtual package to make easy default instalation on desktop environments.
+Virtual package to make easy default installation on desktop environments.
 
 %prep
 %setup -q
@@ -277,6 +280,7 @@ fi
 %{_bindir}/%{name}-debuginfo-install
 %{_bindir}/%{name}-backtrace
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
+%config(noreplace) %{_sysconfdir}/%{name}/gpg_keys
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/dbus-%{name}.conf
 %{_initrddir}/%{name}d
 %dir %attr(0755, abrt, abrt) %{_localstatedir}/cache/%{name}
@@ -355,7 +359,9 @@ fi
 
 %files plugin-sosreport
 %defattr(-,root,root,-)
+%config(noreplace) %{_sysconfdir}/%{name}/plugins/SOSreport.conf
 %{_libdir}/%{name}/libSOSreport.so*
+
 
 %files plugin-bugzilla
 %defattr(-,root,root,-)
@@ -402,6 +408,43 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Tue Feb  2 2010  Jiri Moskovcak <jmoskovc@redhat.com> 1.0.6-1
+- print __glib_assert_msg (rhbz#549735);
+- SPEC: added some requires to abrt-cli to make it work out-of-the-box (jmoskovc@redhat.com)
+- abrt-hook-ccpp: fix rhbz#560612 "limit '18446744073709551615' is bogus" rhbz#560612(vda.linux@googlemail.com)
+- APPLET: don't show the icon when abrtd is not running rhbz#557866 (jmoskovc@redhat.com)
+- GUI: made report message labels wrap (jmoskovc@redhat.com)
+- GUI: don't die if daemon doesn't send the gpg keys (jmoskovc@redhat.com)
+- disabled the autoreporting of kerneloopses (jmoskovc@redhat.com)
+- Kerneloops: fix BZ reporting of oopses (vda.linux@googlemail.com)
+- GUI: wider report message dialog (jmoskovc@redhat.com)
+- moved the gpg key list from abrt.conf to gpg_keys file (jmoskovc@redhat.com)
+- Logger: create log file with mode 0600 (vda.linux@googlemail.com)
+- GUI: fixed the rating logic, to prevent sending BT with rating < 3 (jmoskovc@redhat.com)
+- Report GUI: made more fields copyable - closed rhbz#526209; tweaked wording (vda.linux@googlemail.com)
+- GUI: fixed bug caused by failed gk-authorization (jmoskovc@redhat.com)
+
+* Fri Jan 29 2010  Jiri Moskovcak <jmoskovc@redhat.com> 1.0.5-1
+- moved the gpg key list from abrt.conf to gpg_keys file (jmoskovc@redhat.com)
+- Logger: create log file with mode 0600 rhbz#559545 (vda.linux@googlemail.com)
+- GUI: fixed the rating logic, to prevent sending BT with rating < 3 (jmoskovc@redhat.com)
+- Report GUI: made more fields copyable - closed rhbz#526209; tweaked wording (vda.linux@googlemail.com)
+- GUI: fixed bug caused by failed gk-authorization (jmoskovc@redhat.com)
+- fix bug 559881 (kerneloops not shown in "new" GUI) (vda.linux@googlemail.com)
+- GUI ReporterDialog: hide log button (vda.linux@googlemail.com)
+- added valgrind and strace to blacklist (jmoskovc@redhat.com)
+- SOSreport: do not leave stray files in /tmp (vda.linux@googlemail.com)
+- Save the core where it belongs if ulimit -c is > 0 (jmoskovc@redhat.com)
+- reenabled gpg check (jmoskovc@redhat.com)
+- SOSreport: run it niced (vda.linux@googlemail.com)
+- report GUI: rename buttons: Log -> Show log, Send -> Send report (vda.linux@googlemail.com)
+- applet: reduce blinking timeout to 3 sec (vda.linux@googlemail.com)
+- fix dbus autostart (vda.linux@googlemail.com)
+- abrtd: set "Reported" status only if at least one reporter succeeded (vda.linux@googlemail.com)
+- SQLite3: disable newline escaping, SQLite does not handle it (vda.linux@googlemail.com)
+- SOSreport: make it avoid double runs; add forced regeneration; upd PLUGINS-HOWTO (vda.linux@googlemail.com)
+- attribute SEGVs in perl to script's package, like we already do for python (vda.linux@googlemail.com)
+
 * Wed Jan 20 2010  Jiri Moskovcak <jmoskovc@redhat.com> 1.0.4-1
 - GUI: redesign of reporter dialog (jmoskovc@redhat.com)
 - Set the prgname to "Automatic Bug Reporting Tool" fixes rhbz#550357 (jmoskovc@redhat.com)
