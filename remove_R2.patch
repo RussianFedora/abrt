@@ -1,0 +1,13 @@
+diff -uprN abrt-1.0.7.orig/src/Daemon/abrt-debuginfo-install abrt-1.0.7/src/Daemon/abrt-debuginfo-install
+--- abrt-1.0.7.orig/src/Daemon/abrt-debuginfo-install	2010-02-14 19:54:14.000000000 +0100
++++ abrt-1.0.7/src/Daemon/abrt-debuginfo-install	2010-03-03 14:58:24.692030800 +0100
+@@ -146,8 +146,7 @@ print_package_names() {
+     # when we look for debuginfo we need only -debuginfo* repos, so we can disable the rest and thus make it faster
+     # also we want only fedora repositories, because abrt won't work for other packages anyway
+     # --showduplicates: do not just show the latest package
+-    # -R2: wait two minutes max (hopefully this prevents infinite hang on yum lock)
+-    local cmd="yum $yumopts '--disablerepo=*' '--enablerepo=fedora-debuginfo*' '--enablerepo=updates-debuginfo*' --showduplicates -R2 --quiet provides $missing_debuginfo_files"
++    local cmd="yum $yumopts '--disablerepo=*' '--enablerepo=fedora-debuginfo*' '--enablerepo=updates-debuginfo*' --showduplicates --quiet provides $missing_debuginfo_files"
+     echo "$cmd" >"yum_provides.$1.OUT"
+     # eval is needed to strip away ''s; cant remove them above and just use
+     # $cmd, that would perform globbing on '*'

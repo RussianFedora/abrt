@@ -3,13 +3,14 @@
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 1.0.7
-Release: 1%{?dist}
+Version: 1.0.8
+Release: 2%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
 Source: http://jmoskovc.fedorapeople.org/%{name}-%{version}.tar.gz
 Source1: abrt.init
+Patch1: remove_R2.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
 BuildRequires: curl-devel
@@ -19,6 +20,7 @@ BuildRequires: desktop-file-utils
 #BuildRequires: nss-devel
 BuildRequires: libnotify-devel
 BuildRequires: xmlrpc-c-devel
+BuildRequires: xmlrpc-c-client
 BuildRequires: file-devel
 BuildRequires: python-devel
 BuildRequires: gettext
@@ -215,6 +217,7 @@ Virtual package to make easy default installation on desktop environments.
 
 %prep
 %setup -q
+%patch1 -b .~remove_R2 -p1
 
 %build
 %configure
@@ -408,6 +411,19 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Wed Mar  3 2010  Denys Vlasenko <dvlasenk@redhat.com> 1.0.8-2
+- fix initscript even more (npajkovs@redhat.com)
+- remove -R2 from yum command line
+
+* Mon Feb 22 2010  Jiri Moskovcak <jmoskovc@redhat.com> 1.0.8-1
+- fix initscript (npajkovs@redhat.com)
+- Kerneloops: make hashing more likely to produce same hash on different oopses (vda.linux@googlemail.com)
+
+* Mon Feb 22 2010  Jiri Moskovcak <jmoskovc@redhat.com> 1.0.8-0.git-20100222
+- Kerneloops: make hashing more likely to produce same hash on different oopses (vda.linux@googlemail.com)
+- make abrt work with the latest kernels (>= 2.6.33) (jmoskovc@redhat.com)
+- lib/Utils/abrt_dbus: utf8-sanitize all strings in dbus messages (fixes #565876) (vda.linux@googlemail.com)
+
 * Fri Feb 12 2010  Jiri Moskovcak <jmoskovc@redhat.com> 1.0.7-1
 - enabled column sorting rhbz#541853
 - Load plugin settings also from ~/.abrt/*.conf (kklic@redhat.com)
