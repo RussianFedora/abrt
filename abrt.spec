@@ -4,12 +4,16 @@
 Summary: Automatic bug detection and reporting tool
 Name: abrt
 Version: 1.0.8
-Release: 1%{?dist}
+Release: 3%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
-Source: http://jmoskovc.fedorapeople.org/%{name}-%{version}.tar.gz
+Source: https://fedorahosted.org/released/%{name}/%{name}-%{version}.tar.gz
 Source1: abrt.init
+Patch1: remove_R2.patch
+Patch2: abrt-1.0.8-oops.patch
+Patch3: abrt-1.0.8-use-only-enabledrepos.patch
+Patch4: abrt-1.0.8-debuginfoinstall-latest-yum.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
 BuildRequires: curl-devel
@@ -216,6 +220,10 @@ Virtual package to make easy default installation on desktop environments.
 
 %prep
 %setup -q
+%patch1 -b .~remove_R2 -p1
+%patch2 -b .~oops -p1
+%patch3 -b .~only-enabled -p1
+%patch4 -b .~latest-yum -p1
 
 %build
 %configure
@@ -409,6 +417,17 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Sat Mar 13 2010  Jiri Moskovcak <jmoskovc@redhat.com> 1.0.8-3
+- fixed kerneloops reporting rhbz#570081
+- fixed Source url
+- fixed debuginfo-install to work on F13
+  - improved debuginfo-install (vda.linux@googlemail.com)
+  - fix debuginfo-install to work with yum >= 3.2.26 (jmoskovc@redhat.com)
+
+* Wed Mar  3 2010  Denys Vlasenko <dvlasenk@redhat.com> 1.0.8-2
+- fix initscript even more (npajkovs@redhat.com)
+- remove -R2 from yum command line
+
 * Mon Feb 22 2010  Jiri Moskovcak <jmoskovc@redhat.com> 1.0.8-1
 - fix initscript (npajkovs@redhat.com)
 - Kerneloops: make hashing more likely to produce same hash on different oopses (vda.linux@googlemail.com)
