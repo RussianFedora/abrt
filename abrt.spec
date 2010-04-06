@@ -6,7 +6,7 @@
 # that the built package isn't the stock distribution package,
 # for example, by setting the define to ".local" or ".bz123456"
 #
-%define _buildid 201003311
+# % define _buildid .local
 
 %if 0%{?_buildid}
 %define pkg_release 0.%{?_buildid}%{?dist}
@@ -457,6 +457,15 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Tue Apr 06 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.0.9-1
+- hooklib: fix excessive rounding down in free space calculation (bz#575644) (vda.linux@googlemail.com)
+- gui: fix 551989 "crash detected in abrt-gui-1.0.0-1.fc12" and such (vda.linux@googlemail.com)
+- trivial: fix 566806 "abrt-gui sometimes can't be closed" (vda.linux@googlemail.com)
+- gui: fix the last case where gnome-keyring's find_items_sync() may throw DeniedError (vda.linux@googlemail.com)
+- fixed some compilation problems on F13 (jmoskovc@redhat.com)
+- updated translations (jmoskovc@redhat.com)
+- minor fix to sosreport to make it work with latest sos rhbz#576861 (jmoskovc@redhat.com)
+
 * Wed Mar 31 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.0.9-0.201003312045.1
 - test day build
 - updated translation
