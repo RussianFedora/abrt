@@ -11,7 +11,7 @@
 %if 0%{?_buildid}
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 1%{?dist}
+%define pkg_release 2%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
@@ -24,6 +24,9 @@ URL: https://fedorahosted.org/abrt/
 Source: https://fedorahosted.org/released/%{name}/%{name}-%{version}.tar.gz
 Source1: abrt.init
 Patch0: abrt-1.0.9-hideprefs.patch
+Patch1: abrt-localizedyum.patch
+Patch2: abrt-1.0.9-better-bz-summary.patch
+Patch3: abrt-1.0.9-ignore_user_scripts.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
 BuildRequires: curl-devel
@@ -236,6 +239,9 @@ Virtual package to make easy default installation on desktop environments.
 %prep
 %setup -q
 %patch0 -p1 -b .hideprefs
+%patch1 -p1 -b .localizedyum
+%patch2 -p1 -b .better_bz
+%patch3 -p1 -b .ingore_unp_scripts
 
 %build
 %configure
@@ -457,6 +463,11 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Wed Apr 14 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.0.9-2
+- fixed problem with localized yum messages rhbz#581804
+- better bugzilla summary (napjkovs@redhat.com)
+- ignore interpreter (py,perl) crashes caused by unpackaged scripts (kklic@redhat.com)
+
 * Tue Apr 06 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.0.9-1
 - hooklib: fix excessive rounding down in free space calculation (bz#575644) (vda.linux@googlemail.com)
 - gui: fix 551989 "crash detected in abrt-gui-1.0.0-1.fc12" and such (vda.linux@googlemail.com)
