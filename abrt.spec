@@ -3,14 +3,17 @@
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 1.0.8
-Release: 2%{?dist}
+Version: 1.0.9
+Release: 1%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
-Source: http://jmoskovc.fedorapeople.org/%{name}-%{version}.tar.gz
+Source: https://fedorahosted.org/released/%{name}/%{name}-%{version}.tar.gz
 Source1: abrt.init
-Patch1: remove_R2.patch
+Patch0: abrt-1.0.9-hideprefs.patch
+Patch1: abrt-localizedyum.patch
+Patch2: abrt-1.0.9-better-bz-summary.patch
+Patch3: abrt-1.0.9-ignore_user_scripts.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
 BuildRequires: curl-devel
@@ -148,6 +151,22 @@ Requires: %{name} = %{version}-%{release}
 %description plugin-bugzilla
 Plugin to report bugs into the bugzilla.
 
+%package plugin-rhfastcheck
+Summary: %{name}'s rhfastcheck plugin
+Group: System Environment/Libraries
+Requires: %{name} = %{version}-%{release}
+
+%description plugin-rhfastcheck
+Plugin to quickly check RH support DB for known solution.
+
+%package plugin-rhticket
+Summary: %{name}'s rhticket plugin
+Group: System Environment/Libraries
+Requires: %{name} = %{version}-%{release}
+
+%description plugin-rhticket
+Plugin to report bugs into RH support system.
+
 %package plugin-catcut
 Summary: %{name}'s catcut plugin
 Group: System Environment/Libraries
@@ -217,7 +236,10 @@ Virtual package to make easy default installation on desktop environments.
 
 %prep
 %setup -q
-%patch1 -b .~remove_R2 -p1
+%patch0 -p1 -b ~hideprefs
+%patch1 -p1 -b ~localizedyum
+%patch2 -p1 -b ~better_bz
+%patch3 -p1 -b ~ingore_unp_scripts
 
 %build
 %configure
@@ -261,6 +283,13 @@ exit 0
 %post
 /sbin/chkconfig --add %{name}d
 
+%post gui
+# update icon cache
+touch --no-create %{_datadir}/icons/hicolor || :
+if [ -x %{_bindir}/gtk-update-icon-cache ]; then
+  %{_bindir}/gtk-update-icon-cache --quiet %{_datadir}/icons/hicolor || :
+fi
+
 %post libs -p /sbin/ldconfig
 
 %preun
@@ -270,6 +299,12 @@ if [ "$1" -eq "0" ] ; then
 fi
 
 %postun libs -p /sbin/ldconfig
+
+%postun gui
+touch --no-create %{_datadir}/icons/hicolor || :
+if [ -x %{_bindir}/gtk-update-icon-cache ]; then
+  %{_bindir}/gtk-update-icon-cache --quiet %{_datadir}/icons/hicolor || :
+fi
 
 %posttrans
 if [ "$1" -eq "0" ]; then
@@ -313,10 +348,13 @@ fi
 %files gui
 %defattr(-,root,root,-)
 %{_bindir}/%{name}-gui
-%{_datadir}/%{name}
+%dir %{_datadir}/%{name}
+# all glade, gtkbuilder and py files for gui
+%{_datadir}/%{name}/*.py*
+%{_datadir}/%{name}/*.glade
 %{_datadir}/applications/fedora-%{name}.desktop
-%{_datadir}/pixmaps/abrt.png
-%{_datadir}/icons/hicolor/48x48/apps/*.png
+%{_datadir}/icons/hicolor/*/apps/*
+%{_datadir}/%{name}/icons/hicolor/*/status/*
 %{_bindir}/%{name}-applet
 %{_sysconfdir}/xdg/autostart/%{name}-applet.desktop
 
@@ -373,6 +411,20 @@ fi
 %{_libdir}/%{name}/Bugzilla.GTKBuilder
 %{_mandir}/man7/%{name}-Bugzilla.7.gz
 
+%files plugin-rhfastcheck
+%defattr(-,root,root,-)
+#%config(noreplace) %{_sysconfdir}/%{name}/plugins/rhfastcheck.conf
+%{_libdir}/%{name}/librhfastcheck.so*
+#%{_libdir}/%{name}/rhfastcheck.GTKBuilder
+#%{_mandir}/man7/%{name}-rhfastcheck.7.gz
+
+%files plugin-rhticket
+%defattr(-,root,root,-)
+#%config(noreplace) %{_sysconfdir}/%{name}/plugins/rhticket.conf
+%{_libdir}/%{name}/librhticket.so*
+#%{_libdir}/%{name}/rhticket.GTKBuilder
+#%{_mandir}/man7/%{name}-rhticket.7.gz
+
 %files plugin-catcut
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Catcut.conf
@@ -399,6 +451,7 @@ fi
 %attr(4755, abrt, abrt) %{_libexecdir}/abrt-hook-python
 %{_libdir}/%{name}/libPython.so*
 %{python_site}/*.py*
+%{python_site}/abrt.pth
 
 
 %files cli
@@ -411,6 +464,55 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Thu Apr 15 2010  Jiri Moskovcak <jmoskovc@redhat.com> 1.0.9-1
+- fixed problem with localized yum messages rhbz#581804
+- better bugzilla summary (napjkovs@redhat.com)
+- ignore interpreter (py,perl) crashes caused by unpackaged scripts (kklic@redhat.com)
+- hooklib: fix excessive rounding down in free space calculation (bz#575644) (vda.linux@googlemail.com)
+- gui: fix 551989 "crash detected in abrt-gui-1.0.0-1.fc12" and such (vda.linux@googlemail.com)
+- trivial: fix 566806 "abrt-gui sometimes can't be closed" (vda.linux@googlemail.com)
+- gui: fix the last case where gnome-keyring's find_items_sync() may throw DeniedError (vda.linux@googlemail.com)
+- fixed some compilation problems on F13 (jmoskovc@redhat.com)
+- updated translations (jmoskovc@redhat.com)
+- minor fix to sosreport to make it work with latest sos rhbz#576861 (jmoskovc@redhat.com)
+- test day build
+- updated translation
+- minor fix to sosreport to make it work with latest sos rhbz#576861 (jmoskovc@redhat.com)
+- GUI: total rewrite based on design from Mairin Duffy (jmoskovc@redhat.com)
+- trivial: better HTTP/curl error reporting (vda.linux@googlemail.com)
+- Use backtrace parser from abrtutils, new backtrace rating algorithm, store crash function if it's known (kklic@redhat.com)
+- abrt-rate-backtrace is replaced by abrt-backtrace --rate (kklic@redhat.com)
+- Ignore some temp files (kklic@redhat.com)
+- PYHOOK: don't use sitecustomize.py rhbz#539497 (jmoskovc@redhat.com)
+- rhfastcheck: a new reporter plugin based on Gavin's work (vda.linux@googlemail.com)
+- rhticket: new reporter plugin (vda.linux@googlemail.com)
+- GUI: fixed few window icons (jmoskovc@redhat.com)
+- Allow user to select which reporter he wants to use to report a crash using CLI.(kklic@redhat.com)
+- bz reporter: s/uuid/duphash; more understandable message; simplify result str generation; fix indentation (vda.linux@googlemail.com)
+- GUI: fixed crash count column sorting rhbz#573139 (jmoskovc@redhat.com)
+- Kerneloops: use 1st line of oops as REASON. Closes rhbz#574196. (vda.linux@googlemail.com)
+- Kerneloops: fix a case when we file an oops w/o backtrace (vda.linux@googlemail.com)
+- minor fix in abrt-debuginfo-install to make it work with yum >= 3.2.26 (jmoskovc@redhat.com)
+- GUI: added action to applet to directly report last crash (jmoskovc@redhat.com)
+- Never flag backtrace as binary file (fixes problem observed in bz#571411) (vda.linux@googlemail.com)
+- improve syslog file detection. closes bz#565983 (vda.linux@googlemail.com)
+- add arch, package and release in comment (npajkovs@redhat.com)
+- add ProcessUnpackaged option to abrt.conf (vda.linux@googlemail.com)
+- abrt-debuginfo-install: use -debuginfo repos which match enabled "usual" repos (vda.linux@googlemail.com)
+- fix format security error (fcrozat@mandriva.com)
+- icons repackaging (jmoskovc@redhat.com)
+- partial fix for bz#565983 (vda.linux@googlemail.com)
+- SPEC: Updated source URL (jmoskovc@redhat.com)
+- removed unneeded patches
+- and much more ...
+
+* Sat Mar 13 2010  Jiri Moskovcak <jmoskovc@redhat.com> 1.0.8-3
+- fixed kerneloops reporting rhbz#570081
+- fixed Source url
+- fixed debuginfo-install to work on F13
+  - improved debuginfo-install (vda.linux@googlemail.com)
+  - fix debuginfo-install to work with yum >= 3.2.26 (jmoskovc@redhat.com)
+
 * Wed Mar  3 2010  Denys Vlasenko <dvlasenk@redhat.com> 1.0.8-2
 - fix initscript even more (npajkovs@redhat.com)
 - remove -R2 from yum command line
