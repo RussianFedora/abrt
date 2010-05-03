@@ -11,7 +11,7 @@
 %if 0%{?_buildid}
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 2%{?dist}
+%define pkg_release 3%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
@@ -27,6 +27,7 @@ Patch0: abrt-1.0.9-hideprefs.patch
 Patch1: abrt-localizedyum.patch
 Patch2: abrt-1.0.9-better-bz-summary.patch
 Patch3: abrt-1.0.9-ignore_user_scripts.patch
+Patch4: abrt-1.0.9-crash-function-detect.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
 BuildRequires: curl-devel
@@ -242,6 +243,7 @@ Virtual package to make easy default installation on desktop environments.
 %patch1 -p1 -b .localizedyum
 %patch2 -p1 -b .better_bz
 %patch3 -p1 -b .ingore_unp_scripts
+%patch4 -p1 -b .crash_function_detect
 
 %build
 %configure
@@ -463,6 +465,9 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Mon May 03 2010 Karel Klic <kklic@redhat.com> 1.0.9-3
+- fixed crash function detection (a part of duplication detection)
+
 * Wed Apr 14 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.0.9-2
 - fixed problem with localized yum messages rhbz#581804
 - better bugzilla summary (napjkovs@redhat.com)
