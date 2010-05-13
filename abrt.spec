@@ -24,6 +24,7 @@ URL: https://fedorahosted.org/abrt/
 Source: https://fedorahosted.org/released/%{name}/%{name}-%{version}.tar.gz
 Source1: abrt.init
 Patch0: abrt-1.0.9-hideprefs.patch
+Patch1: abrt_disable_gpgcheck.diff
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
 BuildRequires: curl-devel
@@ -236,6 +237,8 @@ Virtual package to make easy default installation on desktop environments.
 %prep
 %setup -q
 %patch0 -p1 -b .hideprefs
+# rawhide packages are not signed, so we need to disable the gpg check
+%patch1 -p1 -b .disable_gpg_check
 
 %build
 %configure

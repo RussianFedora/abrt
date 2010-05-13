@@ -1,12 +1,11 @@
---- abrt-1.0.8_old/src/Daemon/abrt.conf	2010-02-11 23:52:28.000000000 +0100
-+++ abrt-1.0.8/src/Daemon/abrt.conf	2010-02-23 13:40:25.232039367 +0100
-@@ -3,7 +3,8 @@
+--- abrt-1.1.1/src/Daemon/abrt.conf	2010-05-12 15:48:18.000000000 +0200
++++ abrt-1.1.1_/src/Daemon/abrt.conf	2010-05-13 11:15:15.773258050 +0200
+@@ -3,7 +3,7 @@
  # only crashes in signed packages will be analyzed.
  # the list of public keys used to check the signature is
  # in the file gpg_keys
 -OpenGPGCheck = yes
-+# disable for rawhide, because the packages are not signed
 +OpenGPGCheck = no
  # Blacklisted packages
- BlackList = nspluginwrapper, valgrind, strace, avant-window-navigator
- # Which database plugin to use
+ BlackList = nspluginwrapper, valgrind, strace
+ # Process crashes in executables which do not belong to any package?
