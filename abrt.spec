@@ -11,12 +11,12 @@
 %if 0%{?_buildid}
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 3%{?dist}
+%define pkg_release 1%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 1.0.9
+Version: 1.1.1
 Release: %{?pkg_release}
 License: GPLv2+
 Group: Applications/System
@@ -24,10 +24,6 @@ URL: https://fedorahosted.org/abrt/
 Source: https://fedorahosted.org/released/%{name}/%{name}-%{version}.tar.gz
 Source1: abrt.init
 Patch0: abrt-1.0.9-hideprefs.patch
-Patch1: abrt-localizedyum.patch
-Patch2: abrt-1.0.9-better-bz-summary.patch
-Patch3: abrt-1.0.9-ignore_user_scripts.patch
-Patch4: abrt-1.0.9-crash-function-detect.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
 BuildRequires: curl-devel
@@ -240,10 +236,6 @@ Virtual package to make easy default installation on desktop environments.
 %prep
 %setup -q
 %patch0 -p1 -b .hideprefs
-%patch1 -p1 -b .localizedyum
-%patch2 -p1 -b .better_bz
-%patch3 -p1 -b .ingore_unp_scripts
-%patch4 -p1 -b .crash_function_detect
 
 %build
 %configure
@@ -358,6 +350,7 @@ fi
 %{_datadir}/%{name}/*.glade
 %{_datadir}/applications/fedora-%{name}.desktop
 %{_datadir}/icons/hicolor/*/apps/*
+%{_datadir}/icons/hicolor/*/status/*
 %{_datadir}/%{name}/icons/hicolor/*/status/*
 %{_bindir}/%{name}-applet
 %{_sysconfdir}/xdg/autostart/%{name}-applet.desktop
@@ -465,10 +458,37 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Thu May 13 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.1-1
+- updated translations
+- removed avant-window-navigator from blacklist (jmoskovc@redhat.com)
+- Abort debuginfo download if low on disk space (partially addresses #564451) (vda.linux@googlemail.com)
+- fix bug 588945 - sparse core files performance hit (vda.linux@googlemail.com)
+- Add BlackListedPaths option to abrt.conf. Fixes #582421 (vda.linux@googlemail.com)
+- Do not die when /var/cache/abrt/*/uid does not contain a number (rhbz#580899) (kklic@redhat.com)
+- rid of rewriting config in /etc/abrt/abrt.conf (npajkovs@redhat.com)
+- fix bug 571411: backtrace attachment of the form /var/cache/abrt/foo-12345-67890/backtrace (vda.linux@googlemail.com)
+- Do not echo password to terminal in abrt-cli (kklic@redhat.com)
+- improved daemon error messages (kklic@redhat.com)
+
+* Mon May 03 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.0-1
+- updated transaltions
+- added Hebrew into languages
+- updated icons rhbz#587698 (jmoskovc@redhat.com)
+- Bugzilla login/password emptiness check uses 'or' instead of 'and' (kklic@redhat.com)
+- Show error message when abrtd service is run as non-root. rhbz#584352 (kklic@redhat.com)
+- Rename EnableOpenGPG to OpenGPGCheck in the man page rhbz#584332 (kklic@redhat.com)
+- Document ProcessUnpackaged in abrt.conf.5. Document default values. (kklic@redhat.com)
+- Crash function is now detected even for threads without an abort frame (kklic@redhat.com)
+- comment can be private (npajkovs@redhat.com)
+- do not catch perl/python crashes when the script is not of known package origin (kklic@redhat.com)
+- kerneloop is more informative when failed (npajkovs@redhat.com)
+- add function name into summary(if it's found) (npajkovs@redhat.com)
+- Change kerneloops message when it fails (npajkovs@redhat.com)
+
 * Fri Apr 30 2010 Karel Klic <kklic@redhat.com> 1.0.9-3
 - fixed crash function detection (a part of duplication detection)
 
-* Wed Apr 15 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.0.9-2
+* Wed Apr 14 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.0.9-2
 - fixed problem with localized yum messages rhbz#581804
 - better bugzilla summary (napjkovs@redhat.com)
 - ignore interpreter (py,perl) crashes caused by unpackaged scripts (kklic@redhat.com)
