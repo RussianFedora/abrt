@@ -16,7 +16,7 @@
 
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 1.1.1
+Version: 1.1.2
 Release: %{?pkg_release}
 License: GPLv2+
 Group: Applications/System
@@ -195,6 +195,7 @@ Plugin to uploading files to a server.
 Summary: %{name}'s addon for catching and analyzing Python exceptions
 Group: System Environment/Libraries
 Requires: %{name} = %{version}-%{release}
+Obsoletes: gnome-python2-bugbuddy
 
 %description addon-python
 This package contains python hook and python analyzer plugin for handling
@@ -461,6 +462,19 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Wed May 19 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.2-1
+- updated translation
+- obsolete gnome-python2-bugbuddy rhbz#579748 (jmoskovc@redhat.com)
+- Report "INFO: possible recursive locking detected rhbz#582378 (vda.linux@googlemail.com)
+- kill yumdownloader if abrt-debuginfo-install is terminated mid-flight (vda.linux@googlemail.com)
+- do not create Python dumps if argv[0] is not absolute (vda.linux@googlemail.com)
+- improve kerneloops hash (vda.linux@googlemail.com)
+- Move /var/cache/abrt to /var/spool/abrt. rhbz#568101. (vda.linux@googlemail.com)
+- bugzilla: better summary and decription messages (npajkovs@redhat.com)
+- renamed daemon pid and lock file rhbz#588315 (jmoskovc@redhat.com)
+- Daemon socket for reporting crashes (kklic@redhat.com)
+- Move hooklib from src/Hooks to lib/Utils (kklic@redhat.com)
+
 * Thu May 13 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.1-1
 - updated translations
 - removed avant-window-navigator from blacklist (jmoskovc@redhat.com)
