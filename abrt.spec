@@ -11,12 +11,12 @@
 %if 0%{?_buildid}
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 2%{?dist}
+%define pkg_release 1%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 1.1.2
+Version: 1.1.3
 Release: %{?pkg_release}
 License: GPLv2+
 Group: Applications/System
@@ -258,6 +258,7 @@ make install DESTDIR=$RPM_BUILD_ROOT mandir=%{_mandir}
 find $RPM_BUILD_ROOT -name '*.la' -or -name '*.a' | xargs rm -f
 mkdir -p ${RPM_BUILD_ROOT}/%{_initrddir}
 install -m 755 %SOURCE1 ${RPM_BUILD_ROOT}/%{_initrddir}/abrtd
+# /var/cache/%{name} is to be removed in 1.3.x timeframe
 mkdir -p $RPM_BUILD_ROOT/var/cache/%{name}
 mkdir -p $RPM_BUILD_ROOT/var/cache/%{name}-di
 mkdir -p $RPM_BUILD_ROOT/var/run/%{name}
@@ -464,6 +465,9 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Fri May 21 2010 Denys Vlasenko <dvlasenk@redhat.com> 1.1.3-1
+- More fixes for /var/cache/abrt -> /var/spool/abrt conversion
+
 * Fri May 21 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.2-3
 - fixed spec file to create /var/spool/abrt rhbz#593670
 - updated init script to reflect the pid file renaming
