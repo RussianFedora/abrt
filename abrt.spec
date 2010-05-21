@@ -11,7 +11,7 @@
 %if 0%{?_buildid}
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 1%{?dist}
+%define pkg_release 2%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
@@ -261,6 +261,7 @@ install -m 755 %SOURCE1 ${RPM_BUILD_ROOT}/%{_initrddir}/abrtd
 mkdir -p $RPM_BUILD_ROOT/var/cache/%{name}
 mkdir -p $RPM_BUILD_ROOT/var/cache/%{name}-di
 mkdir -p $RPM_BUILD_ROOT/var/run/%{name}
+mkdir -p $RPM_BUILD_ROOT/var/spool/%{name}
 
 desktop-file-install \
         --dir ${RPM_BUILD_ROOT}%{_datadir}/applications \
@@ -322,6 +323,7 @@ fi
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/dbus-%{name}.conf
 %{_initrddir}/%{name}d
 %dir %attr(0755, abrt, abrt) %{_localstatedir}/cache/%{name}
+%dir %attr(0755, abrt, abrt) %{_localstatedir}/spool/%{name}
 %dir /var/run/%{name}
 %dir %{_sysconfdir}/%{name}
 %dir %{_sysconfdir}/%{name}/plugins
@@ -462,6 +464,10 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Fri May 21 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.2-3
+- fixed spec file to create /var/spool/abrt rhbz#593670
+- updated init script to reflect the pid file renaming
+
 * Wed May 19 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.2-1
 - updated translation
 - obsolete gnome-python2-bugbuddy rhbz#579748 (jmoskovc@redhat.com)
