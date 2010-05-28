@@ -16,7 +16,7 @@
 
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 1.1.0
+Version: 1.1.1
 Release: %{?pkg_release}
 License: GPLv2+
 Group: Applications/System
@@ -194,6 +194,8 @@ Plugin to uploading files to a server.
 Summary: %{name}'s addon for catching and analyzing Python exceptions
 Group: System Environment/Libraries
 Requires: %{name} = %{version}-%{release}
+Obsoletes: gnome-python2-bugbuddy
+Provides: gnome-python2-bugbuddy
 
 %description addon-python
 This package contains python hook and python analyzer plugin for handling
@@ -458,6 +460,19 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Wed May 12 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.1-1
+- updated translations
+- removed avant-window-navigator from blacklist (jmoskovc@redhat.com)
+- Abort debuginfo download if low on disk space (partially addresses #564451) (vda.linux@googlemail.com)
+- fix bug 588945 - sparse core files performance hit (vda.linux@googlemail.com)
+- Add BlackListedPaths option to abrt.conf. Fixes #582421 (vda.linux@googlemail.com)
+- Do not die when /var/cache/abrt/*/uid does not contain a number (rhbz#580899) (kklic@redhat.com)
+- rid of rewriting config in /etc/abrt/abrt.conf (npajkovs@redhat.com)
+- fix bug 571411: backtrace attachment of the form /var/cache/abrt/foo-12345-67890/backtrace (vda.linux@googlemail.com)
+- Do not echo password to terminal in abrt-cli (kklic@redhat.com)
+- obsolete gnome-python2-bugbuddy rhbz#579748 (jmoskovc@redhat.com)
+- removed unused patches
+
 * Mon May 03 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.0-1
 - updated transaltions
 - added Hebrew into languages
