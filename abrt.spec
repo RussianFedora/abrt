@@ -21,6 +21,7 @@ Release: %{?pkg_release}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
+#VCS: git:git://git.fedorahosted.org/git/abrt.git
 Source: https://fedorahosted.org/released/%{name}/%{name}-%{version}.tar.gz
 Source1: abrt.init
 Patch0: abrt-1.0.9-hideprefs.patch
