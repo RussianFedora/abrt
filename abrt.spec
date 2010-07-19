@@ -4,13 +4,14 @@
 Summary: Automatic bug detection and reporting tool
 Name: abrt
 Version: 1.1.1
-Release: 1%{?dist}
+Release: 2%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
 Source: https://fedorahosted.org/released/%{name}/%{name}-%{version}.tar.gz
 Source1: abrt.init
 Patch0: abrt-1.0.9-hideprefs.patch
+Patch1: blacklist_mono.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
 BuildRequires: curl-devel
@@ -225,6 +226,7 @@ Virtual package to make easy default installation on desktop environments.
 %prep
 %setup -q
 %patch0 -p1 -b ~hideprefs
+%patch1 -p1 -b .blacklist_mono
 
 %build
 %configure
@@ -447,6 +449,9 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Mon Jul 19 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.1-2
+- blacklisted mono-core
+
 * Wed May 28 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.1-1
 - removed avant-window-navigator from blacklist (jmoskovc@redhat.com)
 - Abort debuginfo download if low on disk space (partially addresses #564451) (vda.linux@googlemail.com)
