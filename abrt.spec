@@ -17,7 +17,7 @@
 Summary: Automatic bug detection and reporting tool
 Name: abrt
 Version: 1.1.5
-Release: %{?pkg_release}
+Release: %{?pkg_release}.1
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
@@ -466,6 +466,9 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Wed Jul 21 2010 David Malcolm <dmalcolm@redhat.com> - 1.1.5-1.1
+- Rebuilt for https://fedoraproject.org/wiki/Features/Python_2.7/MassRebuild
+
 * Thu Jun 10 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.5-1
 - GUI: polished the reporter assistant (jmoskovc@redhat.com)
 - Logger reporter: do not store useless info (vda.linux@googlemail.com)
