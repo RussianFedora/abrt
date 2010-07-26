@@ -16,8 +16,8 @@
 
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 1.1.5
-Release: %{?pkg_release}.1
+Version: 1.1.10
+Release: %{?pkg_release}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
@@ -26,6 +26,7 @@ Source: https://fedorahosted.org/released/%{name}/%{name}-%{version}.tar.gz
 Source1: abrt.init
 Patch0: abrt-1.0.9-hideprefs.patch
 Patch1: abrt_disable_gpgcheck.diff
+Patch2: blacklist_mono.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
 BuildRequires: curl-devel
@@ -152,36 +153,23 @@ Requires: %{name} = %{version}-%{release}
 %description plugin-bugzilla
 Plugin to report bugs into the bugzilla.
 
-%package plugin-rhfastcheck
-Summary: %{name}'s rhfastcheck plugin
+%package plugin-rhtsupport
+Summary: %{name}'s RHTSupport plugin
 Group: System Environment/Libraries
 Requires: %{name} = %{version}-%{release}
+Obsoletes: abrt-plugin-catcut
+Obsoletes: abrt-plugin-rhfastcheck
+Obsoletes: abrt-plugin-rhticket
 
-%description plugin-rhfastcheck
-Plugin to quickly check RH support DB for known solution.
-
-%package plugin-rhticket
-Summary: %{name}'s rhticket plugin
-Group: System Environment/Libraries
-Requires: %{name} = %{version}-%{release}
-
-%description plugin-rhticket
+%description plugin-rhtsupport
 Plugin to report bugs into RH support system.
 
-%package plugin-catcut
-Summary: %{name}'s catcut plugin
-Group: System Environment/Libraries
-Requires: %{name} = %{version}-%{release}
-
-%description plugin-catcut
-Plugin to report bugs into the catcut.
-
-%package plugin-ticketuploader
+%package plugin-reportuploader
 Summary: %{name}'s ticketuploader plugin
 Group: System Environment/Libraries
 Requires: %{name} = %{version}-%{release}
 
-%description plugin-ticketuploader
+%description plugin-reportuploader
 Plugin to report bugs into anonymous FTP site associated with ticketing system.
 
 %package plugin-filetransfer
@@ -241,6 +229,8 @@ Virtual package to make easy default installation on desktop environments.
 %patch0 -p1 -b .hideprefs
 # rawhide packages are not signed, so we need to disable the gpg check
 %patch1 -p1 -b .disable_gpg_check
+# general patches
+%patch2 -p1 -b .blacklist_mono
 
 %build
 %configure
@@ -319,6 +309,7 @@ fi
 %doc README COPYING
 %{_sbindir}/%{name}d
 %{_bindir}/%{name}-debuginfo-install
+%{_bindir}/%{name}-handle-upload
 %{_bindir}/%{name}-backtrace
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %config(noreplace) %{_sysconfdir}/%{name}/gpg_keys
@@ -347,7 +338,9 @@ fi
 
 %files devel
 %defattr(-,root,root,-)
+%{_includedir}/*
 %{_libdir}/lib*.so
+%{_libdir}/pkgconfig/*
 
 %files gui
 %defattr(-,root,root,-)
@@ -413,33 +406,18 @@ fi
 %{_libdir}/%{name}/Bugzilla.GTKBuilder
 %{_mandir}/man7/%{name}-Bugzilla.7.gz
 
-%files plugin-rhfastcheck
+%files plugin-rhtsupport
 %defattr(-,root,root,-)
-#%config(noreplace) %{_sysconfdir}/%{name}/plugins/rhfastcheck.conf
-%{_libdir}/%{name}/librhfastcheck.so*
-#%{_libdir}/%{name}/rhfastcheck.GTKBuilder
-#%{_mandir}/man7/%{name}-rhfastcheck.7.gz
+%config(noreplace) %{_sysconfdir}/%{name}/plugins/RHTSupport.conf
+%{_libdir}/%{name}/libRHTSupport.so*
+%{_libdir}/%{name}/RHTSupport.GTKBuilder
 
-%files plugin-rhticket
+%files plugin-reportuploader
 %defattr(-,root,root,-)
-#%config(noreplace) %{_sysconfdir}/%{name}/plugins/rhticket.conf
-%{_libdir}/%{name}/librhticket.so*
-#%{_libdir}/%{name}/rhticket.GTKBuilder
-#%{_mandir}/man7/%{name}-rhticket.7.gz
-
-%files plugin-catcut
-%defattr(-,root,root,-)
-%config(noreplace) %{_sysconfdir}/%{name}/plugins/Catcut.conf
-%{_libdir}/%{name}/libCatcut.so*
-%{_libdir}/%{name}/Catcut.GTKBuilder
-#%{_mandir}/man7/%{name}-Catcut.7.gz
-
-%files plugin-ticketuploader
-%defattr(-,root,root,-)
-%config(noreplace) %{_sysconfdir}/%{name}/plugins/TicketUploader.conf
-%{_libdir}/%{name}/libTicketUploader.so*
-%{_libdir}/%{name}/TicketUploader.GTKBuilder
-%{_mandir}/man7/%{name}-TicketUploader.7.gz
+%config(noreplace) %{_sysconfdir}/%{name}/plugins/ReportUploader.conf
+%{_libdir}/%{name}/libReportUploader.so*
+%{_libdir}/%{name}/ReportUploader.GTKBuilder
+%{_mandir}/man7/%{name}-ReportUploader.7.gz
 
 %files plugin-filetransfer
 %defattr(-,root,root,-)
@@ -450,7 +428,6 @@ fi
 %files addon-python
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Python.conf
-%attr(4755, abrt, abrt) %{_libexecdir}/abrt-hook-python
 %{_libdir}/%{name}/libPython.so*
 %{python_site}/*.py*
 %{python_site}/abrt.pth
@@ -466,6 +443,66 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Mon Jul 26 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.10-1
+- blacklisted mono-core package
+- die with an error message if the database plugin is not accessible when needed (kklic@redhat.com)
+- change RHTSupport URL protocol from HTTP to HTTPS (dvlasenk@redhat.com)
+- the Logger plugin returns a message as the result of Report() call instead of a file URL (kklic@redhat.com)
+- Cut off prelink suffixes from executable name if any (mtoman@redhat.com)
+- CCpp: abrt-debuginfo-install output lines can be long, accomodate them (dvlasenk@redhat.com)
+- do not pop up message on crash if the same crash is the same (dvlasenk@redhat.com)
+- fedora bugs do not depend on rhel bugs (npajkovs@redhat.com)
+- GUI: fixed problem with no gkeyring and just one reporter enabled rhbz#612457 (jmoskovc@redhat.com)
+- added a document about interpreted language integration (kklic@redhat.com)
+- moved devel header files to inc/ and included them in -devel package (jmoskovc@redhat.com, npajkovs@redhat.com)
+- renamed abrt-utils.pc to abrt.pc (jmoskovc@redhat.com)
+- string updates based on a UI text review (kklic@redhat.com)
+- rhtsupport obsoletes the old rh plugins (jmoskovc@redhat.com)
+- list allowed items in RHTSupport.conf (kklic@redhat.com)
+- GUI: fixed package name in warning message when the packge is kernel rhbz#612191 (jmoskovc@redhat.com)
+- remove rating for python crashes (jmoskovc@redhat.com)
+- CCpp: give zero rating to an empty backtrace (jmoskovc@redhat.com)
+- GUI: allow sending crashes without rating (jmoskovc@redhat.com)
+- RHTSupport: set default URL to api.access.redhat.com/rs (dvlasenk@redhat.com)
+- abort initialization on abrt.conf parsing errors (dvlasenk@redhat.com)
+- changing NoSSLVerify to SSLVerify in bugzilla plugin (mtoman@redhat.com)
+- added rating to python crashes
+- show hostname in cli (kklic@redhat.com)
+- updated po files (jmoskovc@redhat.com)
+- added support for package specific actions rhbz#606917 (jmoskovc@redhat.com)
+- renamed TicketUploader to ReportUploader (jmoskovc@redhat.com)
+- bad hostnames on remote crashes (npajkovs@redhat.com)
+- unlimited MaxCrashReportsSize (npajkovs@redhat.com)
+- abrt_rh_support: improve error messages rhbz#608698 (vda.linux@googlemail.com)
+- Added BacktraceRemotes option. (kklic@redhat.com)
+- Allow remote crashes to not to belong to a package. Skip GPG check on remote crashes. (kklic@redhat.com)
+- remove obsolete Catcut and rhfastcheck reporters (vda.linux@googlemail.com)
+- make rhel bug point to correct place rhbz#578397 (npajkovs@redhat.com)
+- Show comment and how to reproduce fields when reporing crashes in abrt-cli (kklic@redhat.com)
+- Bash completion update (kklic@redhat.com)
+- Rename --get-list to --list (kklic@redhat.com)
+- Update man page (kklic@redhat.com)
+- Options overhaul (kklic@redhat.com)
+- abrt should not point to Fedora bugs but create new RHEL bug instead (npajkovs@redhat.com)
+- Don't show global uuid in report (npajkovs@redhat.com)
+- GUI: don't try to use action plugins as reporters (jmoskovc@redhat.com)
+- Added WatchCrashdumpArchiveDir directive to abrt.conf and related code (vda.linux@googlemail.com)
+- GUI: don't show the placehondler icon rhbz#605693 (jmoskovc@redhat.com)
+- Make "Loaded foo.conf" message less confusing (vda.linux@googlemail.com)
+- Fixed a flaw in strbuf_prepend_str (kklic@redhat.com)
+- TicketUploader: do not add '\n' to text files in crashdump (vda.linux@googlemail.com)
+- GUI: skip the plugin selection, if it's not needed (jmoskovc@redhat.com)
+- Check conf file for syntax errors (kklic@redhat.com)
+- move misplaced sanity checks in cron parser (vda.linux@googlemail.com)
+- GUI: don't require the rating for all reporters (jmoskovc@redhat.com)
+- GUI: fixed exception when there is no configure dialog for plugin rhbz#603745 (jmoskovc@redhat.com)
+- Add a GUI config dialog for RHTSupport plugin (vda.linux@googlemail.com)
+- abrt_curl: fix a problem with incorrect content-length on 32-bit arches (vda.linux@googlemail.com)
+- sosreport: save the dump directly to crashdump directory (vda.linux@googlemail.com)
+- plugin rename: rhticket -> RHTSupport (vda.linux@googlemail.com)
+- Daemon socket for reporting crashes (karel@localhost.localdomain)
+- GUI: fixed few typos (jmoskovc@redhat.com)
+
 * Wed Jul 21 2010 David Malcolm <dmalcolm@redhat.com> - 1.1.5-1.1
 - Rebuilt for https://fedoraproject.org/wiki/Features/Python_2.7/MassRebuild
 
