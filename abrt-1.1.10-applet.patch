@@ -1,0 +1,36 @@
+commit 406c8793bef87fb49333d7196ea23d42be87c21e
+Author: Jiri Moskovcak <jmoskovc@redhat.com>
+Date:   Mon Jul 26 15:33:02 2010 +0200
+
+    APPLET: minor build fix
+
+diff --git a/src/Applet/CCApplet.cpp b/src/Applet/CCApplet.cpp
+index 8596f4c..02d911d 100644
+--- a/src/Applet/CCApplet.cpp
++++ b/src/Applet/CCApplet.cpp
+@@ -361,7 +361,7 @@ void CApplet::Disable(const char *reason)
+     if (pixbuf)
+     {
+         gray_scaled = gdk_pixbuf_copy(pixbuf);
+-        gdk_pixbuf_saturate_and_pixelate(pixbuf, gray_scaled, 0.0, NULL);
++        gdk_pixbuf_saturate_and_pixelate(pixbuf, gray_scaled, 0.0, false);
+         gtk_status_icon_set_from_pixbuf(m_pStatusIcon, gray_scaled);
+ //do we need to free pixbufs nere?
+     }
+diff --git a/src/Applet/Makefile.am b/src/Applet/Makefile.am
+index 6abef3b..77c9fc9 100644
+--- a/src/Applet/Makefile.am
++++ b/src/Applet/Makefile.am
+@@ -26,10 +26,10 @@ abrt_applet_LDADD = \
+     -lglib-2.0 \
+     -lgthread-2.0 \
+     $(DBUS_LIBS) \
+-    $(LIBNOTIFY_LIBS)
++    $(LIBNOTIFY_LIBS) \
++    $(GTK_LIBS)
+ #    ../../lib/Utils/libABRTdUtils.la
+ #    $(DL_LIBS)
+-#    $(GTK_LIBS)
+ 
+ EXTRA_DIST = abrt-applet.desktop
+ 

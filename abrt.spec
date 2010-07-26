@@ -11,7 +11,7 @@
 %if 0%{?_buildid}
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 1%{?dist}
+%define pkg_release 2%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
@@ -27,6 +27,7 @@ Source1: abrt.init
 Patch0: abrt-1.0.9-hideprefs.patch
 Patch1: abrt_disable_gpgcheck.diff
 Patch2: blacklist_mono.patch
+Patch3: abrt-1.1.10-applet.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
 BuildRequires: curl-devel
@@ -231,6 +232,7 @@ Virtual package to make easy default installation on desktop environments.
 %patch1 -p1 -b .disable_gpg_check
 # general patches
 %patch2 -p1 -b .blacklist_mono
+%patch3 -p1 -b .applet_build
 
 %build
 %configure
@@ -443,6 +445,9 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Mon Jul 26 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.10-2
+- minor build fixes
+
 * Mon Jul 26 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.10-1
 - blacklisted mono-core package
 - die with an error message if the database plugin is not accessible when needed (kklic@redhat.com)
