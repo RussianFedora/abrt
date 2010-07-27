@@ -445,7 +445,7 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
-* Tue Jul 27 2010 David Malcolm <dmalcolm@redhat.com> - 1.1.10-0.%{?_buildid}%{?dist}
+* Tue Jul 27 2010 David Malcolm <dmalcolm@redhat.com> - 1.1.10-4
 - rebuild
 
 * Tue Jul 27 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.10-3
