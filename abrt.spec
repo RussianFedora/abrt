@@ -11,7 +11,7 @@
 %if 0%{?_buildid}
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 3%{?dist}
+%define pkg_release 4%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
@@ -445,6 +445,9 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Tue Jul 27 2010 David Malcolm <dmalcolm@redhat.com> - 1.1.10-0.%{?_buildid}%{?dist}
+- rebuild
+
 * Tue Jul 27 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.10-3
 - blacklist /usr/bin/nspluginviewer
 
