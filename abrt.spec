@@ -11,7 +11,7 @@
 %if 0%{?_buildid}
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 2%{?dist}
+%define pkg_release 3%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
@@ -26,7 +26,7 @@ Source: https://fedorahosted.org/released/%{name}/%{name}-%{version}.tar.gz
 Source1: abrt.init
 Patch0: abrt-1.0.9-hideprefs.patch
 Patch1: abrt_disable_gpgcheck.diff
-Patch2: blacklist_mono.patch
+Patch2: blacklist.patch
 Patch3: abrt-1.1.10-applet.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
@@ -445,6 +445,9 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Tue Jul 27 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.10-3
+- blacklist /usr/bin/nspluginviewer
+
 * Mon Jul 26 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.10-2
 - minor build fixes
 

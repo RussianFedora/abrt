@@ -1,0 +1,22 @@
+--- abrt-1.1.10/src/Daemon/abrt.conf	2010-07-27 16:16:45.376241759 +0200
++++ abrt-1.1.10_rhel6/src/Daemon/abrt.conf	2010-07-27 16:16:32.988241693 +0200
+@@ -16,7 +16,7 @@
+ 
+ # Blacklisted executable paths (shell patterns)
+ #
+-BlackListedPaths = /usr/share/doc/*, */example*
++BlackListedPaths = /usr/share/doc/*, */example*, /usr/bin/nspluginviewer
+ 
+ # Which database plugin to use
+ #
+--- abrt-1.1.10/src/Daemon/abrt.conf	2010-07-26 14:00:36.914502040 +0200
++++ abrt-1.1.10_/src/Daemon/abrt.conf	2010-07-26 14:01:07.597502575 +0200
+@@ -8,7 +8,7 @@
+ 
+ # Blacklisted packages
+ #
+-BlackList = nspluginwrapper, valgrind, strace
++BlackList = nspluginwrapper, valgrind, strace, mono-core
+ 
+ # Process crashes in executables which do not belong to any package?
+ #
