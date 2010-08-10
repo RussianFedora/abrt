@@ -5,7 +5,7 @@
  # Blacklisted executable paths (shell patterns)
  #
 -BlackListedPaths = /usr/share/doc/*, */example*
-+BlackListedPaths = /usr/share/doc/*, */example*, /usr/bin/nspluginviewer
++BlackListedPaths = /usr/share/doc/*, */example*, /usr/bin/nspluginviewer, /usr/lib/xulrunner-*/plugin-container
  
  # Which database plugin to use
  #

@@ -1,7 +1,11 @@
 %{!?python_site: %define python_site %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(0)")}
 # platform-dependent
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
-
+%if 0%{?fedora} >= 14
+    %define with_systemd 1
+%else
+    %define with_systemd 0
+%endif
 # please modify the "_buildid" define in a way that identifies
 # that the built package isn't the stock distribution package,
 # for example, by setting the define to ".local" or ".bz123456"
@@ -11,23 +15,22 @@
 %if 0%{?_buildid}
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 4%{?dist}
+%define pkg_release 1%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 1.1.10
+Version: 1.1.13
 Release: %{?pkg_release}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
-#VCS: git:git://git.fedorahosted.org/git/abrt.git
 Source: https://fedorahosted.org/released/%{name}/%{name}-%{version}.tar.gz
 Source1: abrt.init
 Patch0: abrt-1.0.9-hideprefs.patch
 Patch1: abrt_disable_gpgcheck.diff
 Patch2: blacklist.patch
-Patch3: abrt-1.1.10-applet.patch
+Patch3: polkit.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
 BuildRequires: curl-devel
@@ -41,10 +44,14 @@ BuildRequires: xmlrpc-c-client
 BuildRequires: file-devel
 BuildRequires: python-devel
 BuildRequires: gettext
+BuildRequires: libxml2-devel
 BuildRequires: polkit-devel
-BuildRequires: libzip-devel, libtar-devel, bzip2-devel, zlib-devel
+BuildRequires: libtar-devel, bzip2-devel, zlib-devel
 BuildRequires: intltool
 BuildRequires: bison
+%if %{?with_systemd}
+Requires: systemd-units
+%endif
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires: %{name}-libs = %{version}-%{release}
 Requires(pre): shadow-utils
@@ -166,9 +173,10 @@ Obsoletes: abrt-plugin-rhticket
 Plugin to report bugs into RH support system.
 
 %package plugin-reportuploader
-Summary: %{name}'s ticketuploader plugin
+Summary: %{name}'s reportuploader plugin
 Group: System Environment/Libraries
 Requires: %{name} = %{version}-%{release}
+Obsoletes: abrt-plugin-ticketuploader
 
 %description plugin-reportuploader
 Plugin to report bugs into anonymous FTP site associated with ticketing system.
@@ -186,6 +194,7 @@ Summary: %{name}'s addon for catching and analyzing Python exceptions
 Group: System Environment/Libraries
 Requires: %{name} = %{version}-%{release}
 Obsoletes: gnome-python2-bugbuddy
+Provides: gnome-python2-bugbuddy
 
 %description addon-python
 This package contains python hook and python analyzer plugin for handling
@@ -232,12 +241,13 @@ Virtual package to make easy default installation on desktop environments.
 %patch1 -p1 -b .disable_gpg_check
 # general patches
 %patch2 -p1 -b .blacklist_mono
-%patch3 -p1 -b .applet_build
+%patch3 -p1 -b .polkit
 
 %build
 %configure
 sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
 sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
+CFLAGS="-fno-strict-aliasing"
 make %{?_smp_mflags}
 
 %install
@@ -256,6 +266,7 @@ mkdir -p $RPM_BUILD_ROOT/var/cache/%{name}
 mkdir -p $RPM_BUILD_ROOT/var/cache/%{name}-di
 mkdir -p $RPM_BUILD_ROOT/var/run/%{name}
 mkdir -p $RPM_BUILD_ROOT/var/spool/%{name}
+mkdir -p $RPM_BUILD_ROOT/var/spool/%{name}-upload
 
 desktop-file-install \
         --dir ${RPM_BUILD_ROOT}%{_datadir}/applications \
@@ -276,7 +287,38 @@ getent passwd abrt >/dev/null || useradd --system -g abrt -d /etc/abrt -s /sbin/
 exit 0
 
 %post
+if [ $1 -eq 1 ]; then
 /sbin/chkconfig --add %{name}d
+fi
+#systemd
+%if %{?with_systemd}
+#if [ $1 -eq 1 ]; then
+# Enable (but don't start) the units by default
+  /bin/systemctl enable %{name}d.service >/dev/null 2>&1 || :
+#fi
+%endif
+
+%preun
+if [ "$1" -eq "0" ] ; then
+  service %{name}d stop >/dev/null 2>&1
+  /sbin/chkconfig --del %{name}d
+fi
+#systemd
+%if %{?with_systemd}
+if [ "$1" -eq "0" ] ; then
+  /bin/systemctl stop %{name}d.service >/dev/null 2>&1 || :
+  /bin/systemctl disable %{name}d.service >/dev/null 2>&1 || :
+fi
+%endif
+
+%postun
+#systemd
+%if %{?with_systemd}
+if [ $1 -ge 1 ] ; then
+# On upgrade, reload init system configuration if we changed unit files
+  /bin/systemctl daemon-reload >/dev/null 2>&1 || :
+fi
+%endif
 
 %post gui
 # update icon cache
@@ -286,12 +328,6 @@ if [ -x %{_bindir}/gtk-update-icon-cache ]; then
 fi
 
 %post libs -p /sbin/ldconfig
-
-%preun
-if [ "$1" -eq "0" ] ; then
-  service %{name}d stop >/dev/null 2>&1
-  /sbin/chkconfig --del %{name}d
-fi
 
 %postun libs -p /sbin/ldconfig
 
@@ -305,10 +341,21 @@ fi
 if [ "$1" -eq "0" ]; then
     service %{name}d condrestart >/dev/null 2>&1 || :
 fi
+#systemd
+%if %{?with_systemd}
+if [ "$1" -eq "0" ]; then
+    /bin/systemctl try-restart %{name}d.service >/dev/null 2>&1 || :
+fi
+%endif
+
 
 %files -f %{name}.lang
 %defattr(-,root,root,-)
 %doc README COPYING
+#systemd
+%if %{?with_systemd}
+/lib/systemd/system/%{name}d.service
+%endif
 %{_sbindir}/%{name}d
 %{_bindir}/%{name}-debuginfo-install
 %{_bindir}/%{name}-handle-upload
@@ -317,8 +364,10 @@ fi
 %config(noreplace) %{_sysconfdir}/%{name}/gpg_keys
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/dbus-%{name}.conf
 %{_initrddir}/%{name}d
+# /var/cache/%{name} is to be removed in 1.3.x timeframe
 %dir %attr(0755, abrt, abrt) %{_localstatedir}/cache/%{name}
 %dir %attr(0755, abrt, abrt) %{_localstatedir}/spool/%{name}
+%dir %attr(0700, abrt, abrt) %{_localstatedir}/spool/%{name}-upload
 %dir /var/run/%{name}
 %dir %{_sysconfdir}/%{name}
 %dir %{_sysconfdir}/%{name}/plugins
@@ -343,6 +392,7 @@ fi
 %{_includedir}/*
 %{_libdir}/lib*.so
 %{_libdir}/pkgconfig/*
+%doc doc/abrt-plugin doc/howto-write-reporter
 
 %files gui
 %defattr(-,root,root,-)
@@ -373,21 +423,21 @@ fi
 %{_libdir}/%{name}/libKerneloopsScanner.so*
 %{_mandir}/man7/%{name}-KerneloopsScanner.7.gz
 %{_libdir}/%{name}/libKerneloopsReporter.so*
-%{_libdir}/%{name}/KerneloopsReporter.GTKBuilder
+%{_libdir}/%{name}/KerneloopsReporter.glade
 %{_mandir}/man7/%{name}-KerneloopsReporter.7.gz
 
 %files plugin-logger
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Logger.conf
 %{_libdir}/%{name}/libLogger.so*
-%{_libdir}/%{name}/Logger.GTKBuilder
+%{_libdir}/%{name}/Logger.glade
 %{_mandir}/man7/%{name}-Logger.7.gz
 
 %files plugin-mailx
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Mailx.conf
 %{_libdir}/%{name}/libMailx.so*
-%{_libdir}/%{name}/Mailx.GTKBuilder
+%{_libdir}/%{name}/Mailx.glade
 %{_mandir}/man7/%{name}-Mailx.7.gz
 
 %files plugin-runapp
@@ -405,20 +455,21 @@ fi
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Bugzilla.conf
 %{_libdir}/%{name}/libBugzilla.so*
-%{_libdir}/%{name}/Bugzilla.GTKBuilder
+%{_libdir}/%{name}/Bugzilla.glade
 %{_mandir}/man7/%{name}-Bugzilla.7.gz
 
 %files plugin-rhtsupport
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/RHTSupport.conf
 %{_libdir}/%{name}/libRHTSupport.so*
-%{_libdir}/%{name}/RHTSupport.GTKBuilder
+%{_libdir}/%{name}/RHTSupport.glade
+#%{_mandir}/man7/%{name}-RHTSupport.7.gz
 
 %files plugin-reportuploader
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/ReportUploader.conf
 %{_libdir}/%{name}/libReportUploader.so*
-%{_libdir}/%{name}/ReportUploader.GTKBuilder
+%{_libdir}/%{name}/ReportUploader.glade
 %{_mandir}/man7/%{name}-ReportUploader.7.gz
 
 %files plugin-filetransfer
@@ -445,6 +496,28 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Tue Aug 10 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.13-1
+- updated translation
+- added native systemd file rhbz#617316 (jmoskovc@redhat.com)
+- added ar to LINGUAS (jmoskovc@redhat.com)
+- made /etc/abrt/plugins/Bugzilla.conf world-readable again (jmoskovc@redhat.com)
+- l10n: adding fa locale (lashar@fedoraproject.org)
+- l10n: new Persian (lashar@fedoraproject.org)
+- remove libzip code (npajkovs@redhat.com)
+- add libxml-2.0 into configure (npajkovs@redhat.com)
+- fixed typo in man page rhbz#610748 (jmoskovc@redhat.com)
+- RHTSupport: GUI's SSLVerify checkbox had one missing bit of code (vda.linux@googlemail.com)
+- abrt_curl: discard headers from HTTP redirection (vda.linux@googlemail.com)
+- moved abrt.socket and abrtd.lock into /var/run/abrt making selinux happy (jmoskovc@redhat.com)
+- Mention --info and --backtrace in the abrt-cli man page. (kklic@redhat.com)
+- build fixes for gcc 4.5 (jmoskovc@redhat.com)
+- abrt-hook-ccpp: small fixes prompted by testing on RHEL5 (vda.linux@googlemail.com)
+- Added --info action to abrt-cli (mtoman@redhat.com)
+- wire up SSLVerify in RHTSupport.conf to actually have the desired effect (vda.linux@googlemail.com)
+- fixed tooltip localization rhbz#574693 (jmoskovc@redhat.com)
+- dumpoops/KerneloopsScanner: add pid to crashdump name (vda.linux@googlemail.com)
+- A message change suggested by dhensley (kklic@redhat.com)
+
 * Tue Jul 27 2010 David Malcolm <dmalcolm@redhat.com> - 1.1.10-4
 - rebuild
 
