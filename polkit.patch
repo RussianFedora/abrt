@@ -1,0 +1,104 @@
+diff -urp abrt-1.1.13/lib/Plugins/CCpp.cpp abrt-1.1.13_nopolkit/lib/Plugins/CCpp.cpp
+--- abrt-1.1.13/lib/Plugins/CCpp.cpp	2010-07-28 15:35:14.000000000 +0200
++++ abrt-1.1.13_nopolkit/lib/Plugins/CCpp.cpp	2010-08-10 15:21:18.569491108 +0200
+@@ -28,7 +28,9 @@
+ #include "abrt_exception.h"
+ #include "debug_dump.h"
+ #include "comm_layer_inner.h"
+-#include "Polkit.h"
++#if 0
++    #include "Polkit.h"
++#endif
+ #include "backtrace.h"
+ #include "CCpp_sha1.h"
+ 
+@@ -675,7 +677,7 @@ string CAnalyzerCCpp::GetGlobalUUID(cons
+         return create_hash(hash_base.c_str());
+     }
+ }
+-
++#if 0
+ static bool DebuginfoCheckPolkit(uid_t uid)
+ {
+     fflush(NULL);
+@@ -704,6 +706,7 @@ static bool DebuginfoCheckPolkit(uid_t u
+     log("UID %d is not authorized to install debuginfos", uid);
+     return false;
+ }
++#endif
+ 
+ void CAnalyzerCCpp::CreateReport(const char *pDebugDumpDir, int force)
+ {
+@@ -738,7 +741,7 @@ void CAnalyzerCCpp::CreateReport(const c
+     dd.Close(); /* do not keep dir locked longer than needed */
+ 
+     string build_ids;
+-    if (m_bInstallDebugInfo && DebuginfoCheckPolkit(xatoi_u(UID.c_str())))
++    if (m_bInstallDebugInfo)
+     {
+         if (m_nDebugInfoCacheMB > 0)
+             trim_debuginfo_cache(m_nDebugInfoCacheMB);
+diff -urp abrt-1.1.13/lib/Utils/Makefile.am abrt-1.1.13_nopolkit/lib/Utils/Makefile.am
+--- abrt-1.1.13/lib/Utils/Makefile.am	2010-08-04 17:15:16.000000000 +0200
++++ abrt-1.1.13_nopolkit/lib/Utils/Makefile.am	2010-08-10 14:54:21.779492300 +0200
+@@ -56,8 +56,7 @@ libABRTdUtils_la_SOURCES = \
+     $(HEADER_DIR)/abrt_xmlrpc.h abrt_xmlrpc.cpp \
+     abrt_rh_support.h abrt_rh_support.cpp \
+     abrt_curl.h abrt_curl.cpp \
+-    $(HEADER_DIR)/plugin.h Plugin.cpp \
+-    Polkit.h Polkit.cpp
++    $(HEADER_DIR)/plugin.h Plugin.cpp
+ 
+ libABRTdUtils_la_CPPFLAGS = \
+     -Wall -Werror \
+Only in abrt-1.1.13/: po
+diff -urp abrt-1.1.13/src/Daemon/PluginManager.cpp abrt-1.1.13_nopolkit/src/Daemon/PluginManager.cpp
+--- abrt-1.1.13/src/Daemon/PluginManager.cpp	2010-07-19 17:44:32.000000000 +0200
++++ abrt-1.1.13_nopolkit/src/Daemon/PluginManager.cpp	2010-08-10 15:20:18.288241242 +0200
+@@ -22,7 +22,9 @@
+ #include "abrtlib.h"
+ #include "abrt_exception.h"
+ #include "comm_layer_inner.h"
+-#include "Polkit.h"
++#ifdef PLUGIN_DYNAMIC_LOAD_UNLOAD
++    #include "Polkit.h"
++#endif
+ #include "PluginManager.h"
+ 
+ using namespace std;
+diff -urp abrt-1.1.13/src/Daemon/Settings.cpp abrt-1.1.13_nopolkit/src/Daemon/Settings.cpp
+--- abrt-1.1.13/src/Daemon/Settings.cpp	2010-07-22 14:07:45.000000000 +0200
++++ abrt-1.1.13_nopolkit/src/Daemon/Settings.cpp	2010-08-10 15:20:18.293241459 +0200
+@@ -19,7 +19,10 @@
+ #include "Settings.h"
+ #include "abrtlib.h"
+ #include "abrt_types.h"
+-#include "Polkit.h"
++
++#if 0
++    #include "Polkit.h"
++#endif
+ 
+ #define SECTION_COMMON      "Common"
+ #define SECTION_ANALYZER_ACTIONS_AND_REPORTERS   "AnalyzerActionsAndReporters"
+@@ -525,10 +528,10 @@ map_abrt_settings_t GetSettings()
+ 
+     return ABRTSettings;
+ }
+-
+ /* dbus call to change some .conf file data */
+ void SetSettings(const map_abrt_settings_t& pSettings, const char *dbus_sender)
+ {
++#if 0
+     int polkit_result;
+ 
+     polkit_result = polkit_check_authorization(dbus_sender,
+@@ -539,7 +542,7 @@ void SetSettings(const map_abrt_settings
+         return;
+     }
+     log("user %s succesfully authorized", dbus_sender);
+-
++#endif
+     map_abrt_settings_t::const_iterator it = pSettings.find(SECTION_COMMON);
+     map_abrt_settings_t::const_iterator end = pSettings.end();
+     if (it != end)
