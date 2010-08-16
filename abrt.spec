@@ -15,7 +15,7 @@
 %if 0%{?_buildid}
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 1%{?dist}
+%define pkg_release 2%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
@@ -238,7 +238,7 @@ Virtual package to make easy default installation on desktop environments.
 %setup -q
 %patch0 -p1 -b .hideprefs
 # rawhide packages are not signed, so we need to disable the gpg check
-%patch1 -p1 -b .disable_gpg_check
+# %patch1 -p1 -b .disable_gpg_check
 # general patches
 %patch2 -p1 -b .blacklist_mono
 %patch3 -p1 -b .polkit
@@ -496,6 +496,9 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Mon Aug 16 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.13-2
+- re-enable the gpg check again, should be disabled only in rawhide
+
 * Tue Aug 10 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.13-1
 - updated translation
 - added native systemd file rhbz#617316 (jmoskovc@redhat.com)
