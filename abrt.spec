@@ -15,7 +15,7 @@
 %if 0%{?_buildid}
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 1%{?dist}
+%define pkg_release 2%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
@@ -496,6 +496,9 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Fri Aug 20 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.13-2
+- bump release
+
 * Tue Aug 10 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.13-1
 - updated translation
 - added native systemd file rhbz#617316 (jmoskovc@redhat.com)
