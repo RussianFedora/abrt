@@ -15,7 +15,7 @@
 %if 0%{?_buildid}
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 2%{?dist}
+%define pkg_release 3%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
@@ -28,7 +28,6 @@ URL: https://fedorahosted.org/abrt/
 Source: https://fedorahosted.org/released/%{name}/%{name}-%{version}.tar.gz
 Source1: abrt.init
 Patch0: abrt-1.0.9-hideprefs.patch
-Patch1: abrt_disable_gpgcheck.diff
 Patch2: blacklist.patch
 Patch3: polkit.patch
 BuildRequires: dbus-devel
@@ -238,7 +237,7 @@ Virtual package to make easy default installation on desktop environments.
 %setup -q
 %patch0 -p1 -b .hideprefs
 # rawhide packages are not signed, so we need to disable the gpg check
-%patch1 -p1 -b .disable_gpg_check
+#%patch1 -p1 -b .disable_gpg_check
 # general patches
 %patch2 -p1 -b .blacklist_mono
 %patch3 -p1 -b .polkit
@@ -496,6 +495,9 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Wed Nov 10 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.13-3
+- enabled gpg check forgotten from rawhide
+
 * Fri Aug 20 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.13-2
 - bump release
 
