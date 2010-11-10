@@ -12,10 +12,10 @@
 #
 # % define _buildid .local
 
-%if 0%{?_buildid}
-%define ?pkg_release 2%{?_buildid}%{?dist}
+%if "0%{?_buildid}" != "0"
+%define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 2%{?dist}
+%define pkg_release 3%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
@@ -31,6 +31,7 @@ Patch0: abrt-1.0.9-hideprefs.patch
 Patch1: abrt_disable_gpgcheck.diff
 Patch2: blacklist.patch
 Patch3: polkit.patch
+Patch4: libnotify_07.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
 BuildRequires: curl-devel
@@ -242,6 +243,7 @@ Virtual package to make easy default installation on desktop environments.
 # general patches
 %patch2 -p1 -b .blacklist_mono
 %patch3 -p1 -b .polkit
+%patch4 -p1 -b .libnotify07
 
 %build
 %configure
@@ -496,6 +498,9 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Wed Nov 10 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.13-3
+- Rebuild for libnotify-0.7
+
 * Wed Aug 25 2010 Jochen Schmitt <Jochen herr-schmitt de> 1.1.13-2%{?dist}
 - Rebuild for python-2.7
 
