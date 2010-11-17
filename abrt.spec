@@ -15,12 +15,12 @@
 %if "0%{?_buildid}" != "0"
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 3%{?dist}
+%define pkg_release 1%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 1.1.13
+Version: 1.1.14
 Release: %{?pkg_release}
 License: GPLv2+
 Group: Applications/System
@@ -30,7 +30,6 @@ Source1: abrt.init
 Patch0: abrt-1.0.9-hideprefs.patch
 Patch1: abrt_disable_gpgcheck.diff
 Patch2: blacklist.patch
-Patch3: polkit.patch
 Patch4: libnotify_07.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
@@ -38,7 +37,6 @@ BuildRequires: curl-devel
 BuildRequires: rpm-devel >= 4.6
 BuildRequires: sqlite-devel > 3.0
 BuildRequires: desktop-file-utils
-#BuildRequires: nss-devel
 BuildRequires: libnotify-devel
 BuildRequires: xmlrpc-c-devel
 BuildRequires: xmlrpc-c-client
@@ -242,7 +240,6 @@ Virtual package to make easy default installation on desktop environments.
 %patch1 -p1 -b .disable_gpg_check
 # general patches
 %patch2 -p1 -b .blacklist_mono
-%patch3 -p1 -b .polkit
 %patch4 -p1 -b .libnotify07
 
 %build
@@ -498,6 +495,18 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Wed Nov 17 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.14-1
+- made howto mandatory
+- fixed segv in abrt-hook-ccpp rhbz#652338
+- added warning if kernel was tainted
+- make the "install debuginfo" hint selectable rhbz#644343
+- wrap howto and comments rhbz#625237
+- wrap lines in the backtrace window rhbz#625232
+- changed '*' to '•' rhbz#625236
+- make the bt viewer not-editable rhbz#621871
+- removed unneeded patches
+
+
 * Wed Nov 10 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.13-3
 - Rebuild for libnotify-0.7
 
