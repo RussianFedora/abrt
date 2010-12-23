@@ -15,7 +15,7 @@
 %if "0%{?_buildid}" != "0"
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 1%{?dist}
+%define pkg_release 1%{?dist}.1
 %endif
 
 Summary: Automatic bug detection and reporting tool
@@ -29,6 +29,7 @@ Source: https://fedorahosted.org/released/%{name}/%{name}-%{version}.tar.gz
 Source1: abrt.init
 Patch0: abrt-1.0.9-hideprefs.patch
 Patch2: blacklist.patch
+Patch100: abrt-1.1.13-load-release-from-fedora-release.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
 BuildRequires: curl-devel
@@ -238,6 +239,7 @@ Virtual package to make easy default installation on desktop environments.
 # patch1 -p1 -b .disable_gpg_check
 # general patches
 %patch2 -p1 -b .blacklist_mono
+%patch100 -p1
 
 %build
 %configure
@@ -492,6 +494,9 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
+* Tue Nov 23 2010 Arkady L. Shane <ashejn@yandex-team.ru> 1.1.14-1.1
+- get product from fedora-release
+
 * Wed Nov 17 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.14-1
 - made howto mandatory
 - fixed segv in abrt-hook-ccpp rhbz#652338
