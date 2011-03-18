@@ -15,19 +15,20 @@
 %if "0%{?_buildid}" != "0"
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 1%{?dist}.1
+%define pkg_release 2%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 1.1.14
-Release: %{?pkg_release}
+Version: 1.1.17
+Release: %{?pkg_release}.2
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
 Source: https://fedorahosted.org/released/%{name}/%{name}-%{version}.tar.gz
 Source1: abrt.init
 Patch0: abrt-1.0.9-hideprefs.patch
+Patch1: abrt_disable_gpgcheck.diff
 Patch2: blacklist.patch
 Patch100: abrt-1.1.13-load-release-from-fedora-release.patch
 BuildRequires: dbus-devel
@@ -80,7 +81,7 @@ Summary: %{name}'s gui
 Group: User Interface/Desktops
 Requires: %{name} = %{version}-%{release}
 Requires: dbus-python, pygtk2, pygtk2-libglade,
-Requires: gnome-python2-gnomevfs, gnome-python2-gnomekeyring
+Requires: gnome-python2-gnomekeyring
 # only if gtk2 version < 2.17:
 #Requires: python-sexy
 # we used to have abrt-applet, now abrt-gui includes it:
@@ -236,7 +237,7 @@ Virtual package to make easy default installation on desktop environments.
 %setup -q
 %patch0 -p1 -b .hideprefs
 # rawhide packages are not signed, so we need to disable the gpg check
-# patch1 -p1 -b .disable_gpg_check
+%patch1 -p1 -b .disable_gpg_check
 # general patches
 %patch2 -p1 -b .blacklist_mono
 %patch100 -p1
@@ -280,8 +281,10 @@ desktop-file-install \
 rm -rf $RPM_BUILD_ROOT
 
 %pre
-getent group abrt >/dev/null || groupadd -f --system abrt
-getent passwd abrt >/dev/null || useradd --system -g abrt -d /etc/abrt -s /sbin/nologin abrt
+#uidgid pair 173:173 reserved in setup rhbz#670231
+%define abrt_gid_uid 173
+getent group abrt >/dev/null || groupadd -f -g %{abrt_gid_uid} --system abrt
+getent passwd abrt >/dev/null || useradd --system -g abrt -u %{abrt_gid_uid} -d /etc/abrt -s /sbin/nologin abrt
 exit 0
 
 %post
@@ -357,7 +360,6 @@ fi
 %{_sbindir}/%{name}d
 %{_bindir}/%{name}-debuginfo-install
 %{_bindir}/%{name}-handle-upload
-%{_bindir}/%{name}-backtrace
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %config(noreplace) %{_sysconfdir}/%{name}/gpg_keys
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/dbus-%{name}.conf
@@ -370,7 +372,6 @@ fi
 %dir %{_sysconfdir}/%{name}
 %dir %{_sysconfdir}/%{name}/plugins
 %dir %{_libdir}/%{name}
-%{_mandir}/man1/%{name}-backtrace.1.gz
 %{_mandir}/man8/abrtd.8.gz
 %{_mandir}/man5/%{name}.conf.5.gz
 #%{_mandir}/man5/pyhook.conf.5.gz
@@ -494,8 +495,51 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
-* Tue Nov 23 2010 Arkady L. Shane <ashejn@yandex-team.ru> 1.1.14-1.1
+* Fri Mar 18 2011 Arkady L. Shane <ashejn@yandex-team.ru> 1.1.17-2.1
 - get product from fedora-release
+
+* Fri Feb 18 2011 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.17-2
+- removed gnome-python2-vfs dependency
+
+* Mon Feb 07 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.1.17-1.1
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_15_Mass_Rebuild
+
+* Sat Feb 05 2011 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.17-1
+- rewritten abrt-debuginfo-install script to use the yum API
+- GUI: added search box to backtrace view rhbz#612017 (jmoskovc@redhat.com)
+- fixed some gui warnings rhbz#671488 (jmoskovc@redhat.com)
+- btparser/dupechecker improvements:
+  - Better handling of glibc architecture-specific functions (kklic@redhat.com)
+  - support format of thread header: "Thread 8 (LWP 6357):" (kklic@redhat.com)
+
+* Fri Feb 04 2011 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.16-1
+- rhtsupport: added list of attachments to comment rhbz#668875
+- rhtsupport: stop consuming non-standard header rhbz#670492
+- Resolves: #670492, #668875
+
+* Wed Jan 19 2011 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.15-2
+- add a gui/uid to useradd/groupadd command (reserved in setup rhbz#670231)
+- Resolves: #650975
+
+* Wed Jan 19 2011 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.15-1
+- removed unused files (jmoskovc@redhat.com)
+- update po files (jmoskovc@redhat.com)
+- removed some unused files (jmoskovc@redhat.com)
+- pass old pattern to ccpp hook and use it (dvlasenk@redhat.com)
+- GUI: added warning when gnome-keyring can't be accessed rhbz#576866 (jmoskovc@redhat.com)
+- 666893 - Unable to make sense of XML-RPC response from server (npajkovs@redhat.com)
+- PyHook: ignore SystemExit exception rhbz#636913 (jmoskovc@redhat.com)
+- 665405 - ABRT's usage of sos does not grab /var/log/messages (npajkovs@redhat.com)
+- add a note in report if kernel is tainted (npajkovs@redhat.com)
+- KerneloopsScanner.cpp: make a room for NULL byte (npajkovs@redhat.com)
+- fix multicharacter warring (npajkovs@redhat.com)
+- open help page instead of about rhbz#666267
+
+* Wed Jan 19 2011 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.14-3
+- fixed build with rpm 4.9 (thx panu pmatilai for the patch)
+
+* Wed Jan 19 2011 Matthias Clasen <mclasen@redhat.com> 1.1.14-2
+- Rebuild against new rpm
 
 * Wed Nov 17 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.14-1
 - made howto mandatory
@@ -508,12 +552,11 @@ fi
 - make the bt viewer not-editable rhbz#621871
 - removed unneeded patches
 
-
 * Wed Nov 10 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.13-3
-- enabled gpg check forgotten from rawhide
+- Rebuild for libnotify-0.7
 
-* Fri Aug 20 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.13-2
-- bump release
+* Wed Aug 25 2010 Jochen Schmitt <Jochen herr-schmitt de> 1.1.13-2
+- Rebuild for python-2.7
 
 * Tue Aug 10 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.13-1
 - updated translation
