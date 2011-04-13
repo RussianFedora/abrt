@@ -1,0 +1,22 @@
+diff --git a/src/gui-wizard-gtk/wizard.c b/src/gui-wizard-gtk/wizard.c
+index 31c7bb2..e08dc4e 100644
+--- a/src/gui-wizard-gtk/wizard.c
++++ b/src/gui-wizard-gtk/wizard.c
+@@ -1268,6 +1268,17 @@ static void add_pages(void)
+     config_btn = GTK_WIDGET(gtk_builder_get_object(builder, "button_cfg2"));
+     if (config_btn)
+         g_signal_connect(G_OBJECT(config_btn), "clicked", G_CALLBACK(on_show_event_list_cb), NULL);
++
++    //hack to warn user about settings - will be removed before F15 GOLD
++    GtkWidget *settings_warning_eb = gtk_event_box_new();
++    GtkWidget *settings_warning_lbl = gtk_label_new(_("Please make sure you configured the reporters."));
++    gtk_container_add(GTK_CONTAINER(settings_warning_eb), settings_warning_lbl);
++    gtk_box_pack_start(GTK_BOX(pages[PAGENO_REPORTER_SELECTOR].page_widget), settings_warning_eb, false, false, 0);
++    GdkColor bg_color;
++    gdk_color_parse("red", &bg_color);
++    gtk_widget_modify_bg(settings_warning_eb, GTK_STATE_NORMAL, &bg_color);
++    gtk_widget_show_all(settings_warning_eb);
++
+ }
+ 
+ void create_assistant()

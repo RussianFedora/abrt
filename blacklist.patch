@@ -1,22 +1,21 @@
---- abrt-1.1.10/src/Daemon/abrt.conf	2010-07-27 16:16:45.376241759 +0200
-+++ abrt-1.1.10_rhel6/src/Daemon/abrt.conf	2010-07-27 16:16:32.988241693 +0200
-@@ -16,7 +16,7 @@
- 
- # Blacklisted executable paths (shell patterns)
- #
--BlackListedPaths = /usr/share/doc/*, */example*
-+BlackListedPaths = /usr/share/doc/*, */example*, /usr/bin/nspluginviewer, /usr/lib/xulrunner-*/plugin-container
- 
- # Which database plugin to use
- #
---- abrt-1.1.10/src/Daemon/abrt.conf	2010-07-26 14:00:36.914502040 +0200
-+++ abrt-1.1.10_/src/Daemon/abrt.conf	2010-07-26 14:01:07.597502575 +0200
-@@ -8,7 +8,7 @@
+diff -urp abrt-2.0.0/src/daemon/abrt.conf abrt-2.0.0_/src/daemon/abrt.conf
+--- abrt-2.0.0/src/daemon/abrt.conf	2011-03-23 18:11:00.000000000 +0100
++++ abrt-2.0.0_/src/daemon/abrt.conf	2011-03-30 15:40:51.160618948 +0200
+@@ -8,7 +8,7 @@ OpenGPGCheck = yes
  
  # Blacklisted packages
  #
--BlackList = nspluginwrapper, valgrind, strace
+-BlackList = nspluginwrapper,valgrind,strace
 +BlackList = nspluginwrapper, valgrind, strace, mono-core
  
  # Process crashes in executables which do not belong to any package?
  #
+@@ -16,7 +16,7 @@ ProcessUnpackaged = no
+ 
+ # Blacklisted executable paths (shell patterns)
+ #
+-BlackListedPaths = /usr/share/doc/*,*/example*
++BlackListedPaths = /usr/share/doc/*, */example*, /usr/bin/nspluginviewer, /usr/lib/xulrunner-*/plugin-container
+ 
+ # Enable this if you want abrtd to auto-unpack crashdump tarballs which appear
+ # in this directory (for example, uploaded via ftp, scp etc).

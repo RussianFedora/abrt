@@ -1,0 +1,34 @@
+commit aa08665949da429660dd78a6d26a0fc3cb11d6cd
+Author: Jiri Moskovcak <jmoskovc@redhat.com>
+Date:   Tue Mar 29 18:10:17 2011 +0200
+
+    gui: fixed the prgname trac#180
+
+diff --git a/src/gui-gtk/main.c b/src/gui-gtk/main.c
+index 4602012..b3f6bdc 100644
+--- a/src/gui-gtk/main.c
++++ b/src/gui-gtk/main.c
+@@ -147,6 +147,11 @@ int main(int argc, char **argv)
+     textdomain(PACKAGE);
+ #endif
+ 
++    /* without this the name is set to argv[0] which confuses
++     * desktops which uses the name to find the corresponding .desktop file
++     * trac#180
++     */
++    g_set_prgname("abrt");
+     gtk_init(&argc, &argv);
+ 
+     char *env_verbose = getenv("ABRT_VERBOSE");
+diff --git a/src/gui-wizard-gtk/main.c b/src/gui-wizard-gtk/main.c
+index 1cb9e26..2914b30 100644
+--- a/src/gui-wizard-gtk/main.c
++++ b/src/gui-wizard-gtk/main.c
+@@ -69,6 +69,7 @@ int main(int argc, char **argv)
+     textdomain(PACKAGE);
+ #endif
+ 
++    g_set_prgname("abrt");
+     gtk_init(&argc, &argv);
+ 
+     char *env_verbose = getenv("ABRT_VERBOSE");

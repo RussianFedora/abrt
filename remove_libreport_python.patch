@@ -1,0 +1,6 @@
+diff -u -r abrt-1.2.0/src/Makefile.am abrt-1.2.0_/src/Makefile.am
+--- abrt-1.2.0/src/Makefile.am	2011-03-14 17:51:12.000000000 +0100
++++ abrt-1.2.0_/src/Makefile.am	2011-03-16 15:32:36.989851003 +0100
+@@ -1 +1 @@
+-SUBDIRS = include lib report-python hooks btparser daemon applet gtk-helpers gui-gtk cli plugins gui-wizard-gtk retrace
++SUBDIRS = include lib hooks btparser daemon applet gtk-helpers gui-gtk cli plugins gui-wizard-gtk retrace

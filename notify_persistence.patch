@@ -1,0 +1,153 @@
+commit 78304637542f455b4a00ab32c418b00d2ee17781
+Author: Jiri Moskovcak <jmoskovc@redhat.com>
+Date:   Mon Mar 28 15:23:01 2011 +0200
+
+    applet: really fixed: don't show status icon when server support persistence trac#127
+
+diff --git a/src/applet/applet_gtk.c b/src/applet/applet_gtk.c
+index 78719ef..0ba9499 100644
+--- a/src/applet/applet_gtk.c
++++ b/src/applet/applet_gtk.c
+@@ -21,26 +21,26 @@
+ 
+ static gboolean persistent_notification;
+ 
+-#if !defined(NOTIFY_VERSION_MINOR) || (NOTIFY_VERSION_MAJOR == 0 && NOTIFY_VERSION_MINOR < 7)
++#if defined(NOTIFY_VERSION_MINOR) && (NOTIFY_VERSION_MAJOR == 0 && NOTIFY_VERSION_MINOR >= 6)
+ static gboolean server_has_persistence (void)
+ {
+-        gboolean has;
+-        GList   *caps;
+-        GList   *l;
+-
+-        caps = notify_get_server_caps ();
+-        if (caps == NULL) {
+-                fprintf (stderr, "Failed to receive server caps.\n");
+-                return FALSE;
+-        }
+-
+-        l = g_list_find_custom (caps, "persistence", (GCompareFunc)strcmp);
+-        has = l != NULL;
++    gboolean has;
++    GList   *caps;
++    GList   *l;
++
++    caps = notify_get_server_caps ();
++    if (caps == NULL) {
++            fprintf (stderr, "Failed to receive server caps.\n");
++            return FALSE;
++    }
+ 
+-        g_list_foreach (caps, (GFunc) g_free, NULL);
+-        g_list_free (caps);
++    l = g_list_find_custom (caps, "persistence", (GCompareFunc)strcmp);
++    has = l != NULL;
+ 
+-        return has;
++    g_list_foreach (caps, (GFunc) g_free, NULL);
++    g_list_free (caps);
++    VERB1 log("notify server %s support pesistence\n", has ? "DOES" : "DOESN'T");
++    return has;
+ }
+ #endif
+ 
+@@ -328,7 +328,7 @@ struct applet *applet_new(const char* app_name)
+ {
+     struct applet *applet = (struct applet*)xzalloc(sizeof(struct applet));
+     applet->ap_daemon_running = true;
+-#if !defined(NOTIFY_VERSION_MINOR) || (NOTIFY_VERSION_MAJOR == 0 && NOTIFY_VERSION_MINOR < 7)
++#if defined(NOTIFY_VERSION_MINOR) && (NOTIFY_VERSION_MAJOR == 0 && NOTIFY_VERSION_MINOR >= 6)
+     persistent_notification = server_has_persistence();
+ #endif
+ 
+@@ -398,11 +398,11 @@ void show_crash_notification(struct applet *applet, const char* crash_dir, const
+     notify_notification_add_action(notification, "REPORT", _("Report"),
+                                     NOTIFY_ACTION_CALLBACK(action_report),
+                                     applet, NULL);
+-    notify_notification_add_action(notification, "OPEN_MAIN_WINDOW", _("Open ABRT"),
++    notify_notification_add_action(notification, "default", _("Show"),
+                                     NOTIFY_ACTION_CALLBACK(action_open_gui),
+                                     applet, NULL);
+ 
+-    notify_notification_update(notification, _("Warning"), buf, NULL);
++    notify_notification_update(notification, _("A Problem has Occurred"), buf, NULL);
+     free(buf);
+     GError *err = NULL;
+     notify_notification_show(notification, &err);
+@@ -429,7 +429,7 @@ void show_msg_notification(struct applet *applet, const char *format, ...)
+     notify_notification_add_action(notification, "OPEN_MAIN_WINDOW", _("Open ABRT"),
+                                     NOTIFY_ACTION_CALLBACK(action_open_gui),
+                                     applet, NULL);
+-    notify_notification_update(notification, _("Warning"), buf, NULL);
++    notify_notification_update(notification, _("A Problem has Occurred"), buf, NULL);
+     free(buf);
+     GError *err = NULL;
+     notify_notification_show(notification, &err);
+commit 74eefaaaf84fbb3504881c337e9ee84c5aa4d14c
+Author: Jiri Moskovcak <jmoskovc@redhat.com>
+Date:   Wed Mar 30 16:01:17 2011 +0200
+
+    applet: postpone the applet initialization as much as possible related#trac#127
+    
+    - seems like server_has_persistence() returns false when it's called
+      at the time of applet start, my guess is that the notifyd service setup
+      is not finished at this time, so I moved applet init to the time of
+      the first crash, where all the desktop/notifyd thing should be ready
+
+diff --git a/src/applet/applet.c b/src/applet/applet.c
+index a49725b..eee3d10 100644
+--- a/src/applet/applet.c
++++ b/src/applet/applet.c
+@@ -26,9 +26,16 @@
+ #include "abrt_dbus.h"
+ #include "applet_gtk.h"
+ 
+-
++//This variable is not used anywhere, remove or change to "abrt" and use it
++const char * app_name = "abrt-gui";
+ static struct applet* applet = NULL;
+ 
++/* Initialize GUI stuff. */
++static void init_applet()
++{
++    if (applet == NULL)
++        applet = applet_new(app_name);
++}
+ 
+ static void Crash(DBusMessage* signal)
+ {
+@@ -76,6 +83,7 @@ static void Crash(DBusMessage* signal)
+     const char* message = _("A crash in the %s package has been detected");
+     if (package_name[0] == '\0')
+         message = _("A crash has been detected");
++    init_applet();
+     //applet->AddEvent(uid, package_name);
+     set_icon_tooltip(applet, message, package_name);
+     show_icon(applet);
+@@ -118,6 +126,7 @@ static void QuotaExceeded(DBusMessage* signal)
+ 
+     //if (m_pSessionDBus->has_name("com.redhat.abrt.gui"))
+     //    return;
++    init_applet();
+     show_icon(applet);
+     show_msg_notification(applet, "%s", str);
+ }
+@@ -198,7 +207,6 @@ static void die_if_dbus_error(bool error_flag, DBusError* err, const char* msg)
+ 
+ int main(int argc, char** argv)
+ {
+-    const char * app_name = "abrt-gui";
+     /* I18n */
+     setlocale(LC_ALL, "");
+ #if ENABLE_NLS
+@@ -255,10 +263,6 @@ int main(int argc, char** argv)
+     dbus_bus_add_match(system_conn, "type='signal',path='/com/redhat/abrt'", &err);
+     die_if_dbus_error(false, &err, "Can't add dbus match");
+ 
+-    /* Initialize GUI stuff.
+-     * Note: inside CApplet ctor, libnotify hooks session dbus
+-     * to glib main loop */
+-    applet = applet_new(app_name);
+     /* dbus_abrt cannot handle more than one bus, and we don't really need to.
+      * The only thing we want to do is to announce ourself on session dbus */
+     DBusConnection* session_conn = dbus_bus_get(DBUS_BUS_SESSION, &err);

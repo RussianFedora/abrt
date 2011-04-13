@@ -1,0 +1,28 @@
+diff -urN abrt-2.0.0.orig/src/lib/dump_dir.c abrt-2.0.0/src/lib/dump_dir.c
+--- abrt-2.0.0.orig/src/lib/dump_dir.c	2011-04-13 14:47:44.930333680 +0400
++++ abrt-2.0.0/src/lib/dump_dir.c	2011-04-13 14:50:07.312825508 +0400
+@@ -493,10 +493,10 @@
+     dd_save_text(dd, FILENAME_ARCHITECTURE, buf.machine);
+     dd_save_text(dd, FILENAME_HOSTNAME, buf.nodename);
+ 
+-    char *release = load_text_file("/etc/system-release",
++    char *release = load_text_file("/etc/fedora-release",
+                 DD_LOAD_TEXT_RETURN_NULL_ON_FAILURE);
+     if (!release)
+-        release = load_text_file("/etc/redhat-release", /*flags:*/ 0);
++        release = load_text_file("/etc/fedora-release", /*flags:*/ 0);
+     dd_save_text(dd, FILENAME_OS_RELEASE, release);
+     free(release);
+ }
+diff -urN abrt-2.0.0.orig/src/report-python/__init__.py abrt-2.0.0/src/report-python/__init__.py
+--- abrt-2.0.0.orig/src/report-python/__init__.py	2011-04-13 14:47:44.523326552 +0400
++++ abrt-2.0.0/src/report-python/__init__.py	2011-04-13 14:49:28.606149098 +0400
+@@ -7,7 +7,7 @@
+ 
+ def createAlertSignature(component, hashmarkername, hashvalue, summary, alertSignature):
+ 
+-    SYSTEM_RELEASE_PATHS = ["/etc/system-release","/etc/redhat-release"]
++    SYSTEM_RELEASE_PATHS = ["/etc/fedora-release","/etc/system-release","/etc/redhat-release"]
+     ####SYSTEM_RELEASE_DEPS = ["system-release", "redhat-release"]
+ 
+     _hardcoded_default_product = ""
