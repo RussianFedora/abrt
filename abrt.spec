@@ -601,7 +601,7 @@ fi
 %{_infodir}/abrt-retrace-server*
 
 %changelog
-* Wed Apr 13 2011 Arkady L. Shane <ashejn@yandex-team.ru> 2.0.0-4.1
+* Wed Apr 13 2011 Arkady L. Shane <ashejn@yandex-team.ru> 2.0.0-4.1.R
 - get distribution name from fedora-release
 
 * Thu Mar 31 2011 Jiri Moskovcak <jmoskovc@redhat.com> 2.0.0-4
