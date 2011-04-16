@@ -521,7 +521,8 @@ fi
 %{_libexecdir}/abrt-hook-ccpp
 %{_bindir}/abrt-action-analyze-c
 %{_bindir}/abrt-action-trim-files
-%attr(2755, abrt, abrt) %{_bindir}/abrt-action-install-debuginfo
+%attr(4755, abrt, abrt) %{_bindir}/abrt-action-install-debuginfo
+%{_bindir}/abrt-action-analyzecore.py*
 %{_bindir}/abrt-action-install-debuginfo.py*
 %{_bindir}/abrt-action-generate-backtrace
 %{_bindir}/abrt-action-analyze-backtrace
