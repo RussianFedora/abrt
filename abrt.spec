@@ -15,12 +15,12 @@
 %if "0%{?_buildid}" != "0"
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 1%{?dist}.1
+%define pkg_release 1%{?dist}.1.R
 %endif
 
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 1.1.14
+Version: 1.1.18
 Release: %{?pkg_release}
 License: GPLv2+
 Group: Applications/System
@@ -80,7 +80,7 @@ Summary: %{name}'s gui
 Group: User Interface/Desktops
 Requires: %{name} = %{version}-%{release}
 Requires: dbus-python, pygtk2, pygtk2-libglade,
-Requires: gnome-python2-gnomevfs, gnome-python2-gnomekeyring
+Requires: gnome-python2-gnomekeyring
 # only if gtk2 version < 2.17:
 #Requires: python-sexy
 # we used to have abrt-applet, now abrt-gui includes it:
@@ -280,8 +280,10 @@ desktop-file-install \
 rm -rf $RPM_BUILD_ROOT
 
 %pre
-getent group abrt >/dev/null || groupadd -f --system abrt
-getent passwd abrt >/dev/null || useradd --system -g abrt -d /etc/abrt -s /sbin/nologin abrt
+#uidgid pair 173:173 reserved in setup rhbz#670231
+%define abrt_gid_uid 173
+getent group abrt >/dev/null || groupadd -f -g %{abrt_gid_uid} --system abrt
+getent passwd abrt >/dev/null || useradd --system -g abrt -u %{abrt_gid_uid} -d /etc/abrt -s /sbin/nologin abrt
 exit 0
 
 %post
@@ -357,7 +359,6 @@ fi
 %{_sbindir}/%{name}d
 %{_bindir}/%{name}-debuginfo-install
 %{_bindir}/%{name}-handle-upload
-%{_bindir}/%{name}-backtrace
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %config(noreplace) %{_sysconfdir}/%{name}/gpg_keys
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/dbus-%{name}.conf
@@ -370,7 +371,6 @@ fi
 %dir %{_sysconfdir}/%{name}
 %dir %{_sysconfdir}/%{name}/plugins
 %dir %{_libdir}/%{name}
-%{_mandir}/man1/%{name}-backtrace.1.gz
 %{_mandir}/man8/abrtd.8.gz
 %{_mandir}/man5/%{name}.conf.5.gz
 #%{_mandir}/man5/pyhook.conf.5.gz
@@ -494,8 +494,49 @@ fi
 %defattr(-,root,root,-)
 
 %changelog
-* Tue Nov 23 2010 Arkady L. Shane <ashejn@yandex-team.ru> 1.1.14-1.1
-- get product from fedora-release
+* Mon Apr 16 2011 Arkady L. Shane <ashejn@yandex-team.ru> 1.1.18-1.1.R
+- read product name from fedora-release
+
+* Thu Apr 14 2011 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.18-1
+updated po files (jmoskovc@redhat.com)
+backport: Ticket #160 Hash is not present in Bugzilla (npajkovs@redhat.com)
+added forgotten #include <config.h> (jmoskovc@redhat.com)
+send "User-Agent: ABRT/n.n.n" header in RHTS http transactions (dvlasenk@redhat.com)
+Better duplicate hash (kklic@redhat.com)
+
+* Fri Feb 18 2011 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.17-2
+- removed gnome-python2-vfs dependency
+
+* Sat Feb 05 2011 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.17-1
+- rewritten abrt-debuginfo-install script to use the yum API
+- GUI: added search box to backtrace view rhbz#612017 (jmoskovc@redhat.com)
+- fixed some gui warnings rhbz#671488 (jmoskovc@redhat.com)
+- btparser/dupechecker improvements:
+  - Better handling of glibc architecture-specific functions (kklic@redhat.com)
+  - support format of thread header: "Thread 8 (LWP 6357):" (kklic@redhat.com)
+
+* Fri Feb 04 2011 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.16-1
+- rhtsupport: added list of attachments to comment rhbz#668875
+- rhtsupport: stop consuming non-standard header rhbz#670492
+- Resolves: #670492, #668875
+
+* Wed Jan 19 2011 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.15-2
+- add a gui/uid to useradd/groupadd command (reserved in setup rhbz#670231)
+- Resolves: #650975
+
+* Wed Jan 19 2011 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.15-1
+- removed unused files (jmoskovc@redhat.com)
+- update po files (jmoskovc@redhat.com)
+- removed some unused files (jmoskovc@redhat.com)
+- pass old pattern to ccpp hook and use it (dvlasenk@redhat.com)
+- GUI: added warning when gnome-keyring can't be accessed rhbz#576866 (jmoskovc@redhat.com)
+- 666893 - Unable to make sense of XML-RPC response from server (npajkovs@redhat.com)
+- PyHook: ignore SystemExit exception rhbz#636913 (jmoskovc@redhat.com)
+- 665405 - ABRT's usage of sos does not grab /var/log/messages (npajkovs@redhat.com)
+- add a note in report if kernel is tainted (npajkovs@redhat.com)
+- KerneloopsScanner.cpp: make a room for NULL byte (npajkovs@redhat.com)
+- fix multicharacter warring (npajkovs@redhat.com)
+- open help page instead of about rhbz#666267
 
 * Wed Nov 17 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.14-1
 - made howto mandatory
@@ -507,7 +548,6 @@ fi
 - changed '*' to '•' rhbz#625236
 - make the bt viewer not-editable rhbz#621871
 - removed unneeded patches
-
 
 * Wed Nov 10 2010 Jiri Moskovcak <jmoskovc@redhat.com> 1.1.13-3
 - enabled gpg check forgotten from rawhide
