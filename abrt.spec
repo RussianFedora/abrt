@@ -16,13 +16,13 @@
 %if "0%{?_buildid}" != "0"
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 4%{?dist}
+%define pkg_release 5%{?dist}.1.R
 %endif
 
 Summary: Automatic bug detection and reporting tool
 Name: abrt
 Version: 2.0.0
-Release: %{?pkg_release}.1.R
+Release: %{?pkg_release}
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
@@ -40,6 +40,7 @@ Patch7: a-a-a-backtrace_better_error_handling.patch
 Patch8: a-a-a_better2.patch
 Patch9: g_prgname.patch
 Patch10: settings_warning.patch
+Patch11: split_debuginfo_install.patch
 Patch100: abrt-2.0.0-read-fedora-release.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
@@ -286,6 +287,7 @@ generation service over a network using HTTP protocol.
 %patch9 -p1 -b .prgname
 # FIXME remove when settings check is implemented
 %patch10 -p1 -b .warning
+%patch11 -p1 -b .diinstall
 # RFRemix name workarround
 %patch100 -p1
 
@@ -601,6 +603,10 @@ fi
 %{_infodir}/abrt-retrace-server*
 
 %changelog
+* Sat Apr 16 2011 Arkady L. Shane <ashejn@yandex-team.ru> 2.0.0-5.1.R
+- upstream patch:
+  fixed problem with abrt-action-debuginfo-install rhbz#692064
+
 * Wed Apr 13 2011 Arkady L. Shane <ashejn@yandex-team.ru> 2.0.0-4.1.R
 - get distribution name from fedora-release
 
