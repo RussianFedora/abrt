@@ -16,13 +16,13 @@
 %if "0%{?_buildid}" != "0"
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 5%{?dist}.1.R
+%define pkg_release 1%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 2.0.0
-Release: %{?pkg_release}
+Version: 2.0.1
+Release: %{?pkg_release}.1.R
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
@@ -31,16 +31,7 @@ Source1: abrt.init
 Source2: abrt-ccpp.init
 Patch0: remove_libreport_python.patch
 Patch1: blacklist.patch
-Patch2: notify_persistence.patch
-Patch3: notify_init_name.patch
-Patch4: hash_not_in_bz.patch
-Patch5: dont_continue_if_event_fails.patch
-Patch6: cli_analyze_action_select.patch
-Patch7: a-a-a-backtrace_better_error_handling.patch
-Patch8: a-a-a_better2.patch
-Patch9: g_prgname.patch
-Patch10: settings_warning.patch
-Patch11: split_debuginfo_install.patch
+Patch2: allow_bz_for_koops.patch
 Patch100: abrt-2.0.0-read-fedora-release.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
@@ -264,7 +255,7 @@ Group: System Environment/Daemons
 Requires: abrt-addon-ccpp
 Requires: gdb >= 7.0-3
 Requires: httpd, mod_wsgi, mod_ssl, python-webob
-Requires: mock, xz, elfutils, createrepo
+Requires: mock, xz, elfutils, createrepo, rsync
 %{?el6:Requires: python-argparse}
 Requires(preun): /sbin/install-info
 Requires(post): /sbin/install-info
@@ -277,18 +268,7 @@ generation service over a network using HTTP protocol.
 %setup -q
 %patch0 -p1 -b .libreport_py
 %patch1 -p1 -b .blacklist
-%patch2 -p1 -b .persistence
-%patch3 -p1 -b .notify_progname
-%patch4 -p1 -b .bz_hash
-%patch5 -p1 -b .analyze_fail
-%patch6 -p1 -b .cli_analyze_select
-%patch7 -p1 -b .error_handling
-%patch8 -p1 -b .error_handling2
-%patch9 -p1 -b .prgname
-# FIXME remove when settings check is implemented
-%patch10 -p1 -b .warning
-%patch11 -p1 -b .diinstall
-# RFRemix name workarround
+%patch2 -p1 -b bz_for_oops
 %patch100 -p1
 
 %build
@@ -312,6 +292,9 @@ install -m 755 %SOURCE2 ${RPM_BUILD_ROOT}/%{_initrddir}/abrt-ccpp
 mkdir -p $RPM_BUILD_ROOT/var/cache/abrt-di
 mkdir -p $RPM_BUILD_ROOT/var/run/abrt
 mkdir -p $RPM_BUILD_ROOT/var/spool/abrt
+mkdir -p $RPM_BUILD_ROOT/var/spool/abrt-retrace
+mkdir -p $RPM_BUILD_ROOT/var/cache/abrt-retrace
+mkdir -p $RPM_BUILD_ROOT/var/log/abrt-retrace
 mkdir -p $RPM_BUILD_ROOT/var/spool/abrt-upload
 
 desktop-file-install \
@@ -361,6 +344,7 @@ chown -R abrt:abrt %{_localstatedir}/cache/abrt-di
 
 %post retrace-server
 /sbin/install-info %{_infodir}/abrt-retrace-server %{_infodir}/dir 2> /dev/null || :
+/usr/sbin/usermod -G mock apache 2> /dev/null || :
 
 %preun
 if [ "$1" -eq "0" ] ; then
@@ -460,6 +444,7 @@ fi
 %dir %{_sysconfdir}/%{name}
 %dir %{_sysconfdir}/%{name}/plugins
 %dir %{_sysconfdir}/%{name}/events.d
+%dir %{_sysconfdir}/%{name}/events
 #%dir %{_libdir}/%{name}
 %{_mandir}/man8/abrtd.8.gz
 %{_mandir}/man5/%{name}.conf.5.gz
@@ -494,9 +479,10 @@ fi
 %defattr(-,root,root,-)
 %{_includedir}/abrt/*
 %{_libdir}/libabrt*.so
+%{_includedir}/btparser/*
 %{_libdir}/libbtparser.so
 #FIXME: this should go to libreportgtk-devel package
-%{_libdir}/libreportgtk.so*
+%{_libdir}/libreportgtk.so
 %{_libdir}/pkgconfig/*
 %doc doc/abrt-plugin doc/howto-write-reporter
 
@@ -537,7 +523,7 @@ fi
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Kerneloops.conf
 %{_sysconfdir}/%{name}/events/report_Kerneloops.xml
-%{_sysconfdir}/%{name}/events.d/koops_events.conf
+%config(noreplace) %{_sysconfdir}/%{name}/events.d/koops_events.conf
 %{_mandir}/man7/abrt-KerneloopsReporter.7.gz
 %{_bindir}/abrt-dump-oops
 %{_bindir}/abrt-action-analyze-oops
@@ -552,7 +538,7 @@ fi
 %files plugin-mailx
 %defattr(-,root,root,-)
 %{_sysconfdir}/%{name}/events/report_Mailx.xml
-%{_sysconfdir}/%{name}/events.d/mailx_events.conf
+%config(noreplace) %{_sysconfdir}/%{name}/events.d/mailx_events.conf
 %{_mandir}/man7/abrt-Mailx.7.gz
 %{_bindir}/abrt-action-mailx
 
@@ -568,6 +554,7 @@ fi
 %files plugin-rhtsupport
 %defattr(-,root,root,-)
 %{_sysconfdir}/%{name}/events/report_RHTSupport.xml
+%config(noreplace) %{_sysconfdir}/%{name}/events.d/rhtsupport_events.conf
 # {_mandir}/man7/abrt-RHTSupport.7.gz
 %{_bindir}/abrt-action-rhtsupport
 
@@ -581,7 +568,7 @@ fi
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Python.conf
 %{_bindir}/abrt-action-analyze-python
-%{python_site}/*.py*
+%{python_site}/abrt*.py*
 %{python_site}/abrt.pth
 
 %files cli
@@ -598,18 +585,39 @@ fi
 %config(noreplace) %{_sysconfdir}/%{name}/retrace.conf
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/retrace_httpd.conf
 %config(noreplace) %{_sysconfdir}/yum.repos.d/retrace.repo
-%{_bindir}/abrt-retrace-worker
+%dir %attr(0775, apache, abrt) %{_localstatedir}/spool/abrt-retrace
+%dir %attr(0755, abrt, abrt) %{_localstatedir}/cache/abrt-retrace
+%dir %attr(0755, abrt, abrt) %{_localstatedir}/log/abrt-retrace
+%caps(cap_setuid=ep) %{_bindir}/abrt-retrace-worker
+%{_bindir}/abrt-retrace-cleanup
+%{_bindir}/abrt-retrace-reposync
+%{_bindir}/coredump2packages
+%{python_site}/retrace.py*
 %{_datadir}/abrt-retrace/*.py*
+%{_datadir}/abrt-retrace/plugins/*.py*
 %{_datadir}/abrt-retrace/*.wsgi
 %{_infodir}/abrt-retrace-server*
 
 %changelog
-* Sat Apr 16 2011 Arkady L. Shane <ashejn@yandex-team.ru> 2.0.0-5.1.R
-- upstream patch:
-  fixed problem with abrt-action-debuginfo-install rhbz#692064
+* Thu Apr 21 2011 Arkady L. Shane <ashejn@yandex-team.ru> 2.0.1-1.1.R
+- get product name from /etc/fedora-release
 
-* Wed Apr 13 2011 Arkady L. Shane <ashejn@yandex-team.ru> 2.0.0-4.1.R
-- get distribution name from fedora-release
+* Wed Apr 20 2011 Jiri Moskovcak <jmoskovc@redhat.com> 2.0.1-1
+- updated to 2.0.1
+- updated translation
+- allowed reporting oops to bugzilla
+- added warning when the plugin settings are wrong
+- added help text in plugins settings
+- the plugin settings dialog is translatable
+- improved dir rescanning logic in abrt-gui
+- fixed icons for child dialogs
+- retrace-client: human readable messages instead of http codes
+- save envirnment variables when app crashes
+- fixed gpg/pgp check
+- revert to the old icon
+
+* Fri Apr 15 2011 Jiri Moskovcak <jmoskovc@redhat.com> 2.0.0-5
+- fixed problem with abrt-action-debuginfo-install rhbz#692064
 
 * Thu Mar 31 2011 Jiri Moskovcak <jmoskovc@redhat.com> 2.0.0-4
 - fixed prgname in wizard rhbz#692442
