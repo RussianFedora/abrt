@@ -1,0 +1,7 @@
+--- abrt-2.0.1/src/plugins/koops_events.conf	2011-03-30 21:10:14.000000000 +0200
++++ abrt-2.0.1_/src/plugins/koops_events.conf	2011-04-20 14:43:46.460859863 +0200
+@@ -9,3 +9,4 @@
+ 
+ # report
+ EVENT=report_Kerneloops analyzer=Kerneloops abrt-action-kerneloops
++EVENT=report_Bugzilla analyzer=Kerneloops abrt-action-bugzilla
