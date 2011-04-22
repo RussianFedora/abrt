@@ -16,7 +16,7 @@
 %if "0%{?_buildid}" != "0"
 %define pkg_release 0.%{?_buildid}%{?dist}
 %else
-%define pkg_release 1%{?dist}
+%define pkg_release 2%{?dist}
 %endif
 
 Summary: Automatic bug detection and reporting tool
@@ -32,6 +32,7 @@ Source2: abrt-ccpp.init
 Patch0: remove_libreport_python.patch
 Patch1: blacklist.patch
 Patch2: allow_bz_for_koops.patch
+Patch3: low_bt_rating.patch
 Patch100: abrt-2.0.0-read-fedora-release.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
@@ -62,7 +63,7 @@ Requires: systemd-units
 %endif
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires: %{name}-libs = %{version}-%{release}
-Requires: libreport
+Requires: libreport = %{version}-%{release}
 Requires(pre): shadow-utils
 Obsoletes: abrt-plugin-sqlite3 > 0.0.1
 # required for transition from 1.1.13, can be removed after some time
@@ -269,6 +270,7 @@ generation service over a network using HTTP protocol.
 %patch0 -p1 -b .libreport_py
 %patch1 -p1 -b .blacklist
 %patch2 -p1 -b bz_for_oops
+%patch3 -p1 -b low_rating
 %patch100 -p1
 
 %build
@@ -599,6 +601,10 @@ fi
 %{_infodir}/abrt-retrace-server*
 
 %changelog
+* Fri Apr 22 2011 Arkady L. Shane <ashejn@yandex-team.ru> 2.0.1-2.1.R
+- don't allow reporting of backtrace with rating = 0 rhbz#672023
+- use versioned deps on libreport
+
 * Thu Apr 21 2011 Arkady L. Shane <ashejn@yandex-team.ru> 2.0.1-1.1.R
 - get product name from /etc/fedora-release
 
