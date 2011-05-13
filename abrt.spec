@@ -7,32 +7,23 @@
     %define with_systemd 0
 %endif
 
-# please modify the "_buildid" define in a way that identifies
-# that the built package isn't the stock distribution package,
-# for example, by setting abbreviation sha1 hash "238f49f"
-#
-# % define _buildid git238f49f
-
-%if "0%{?_buildid}" != "0"
-%define pkg_release 0.%{?_buildid}%{?dist}
-%else
-%define pkg_release 2%{?dist}
-%endif
-
 Summary: Automatic bug detection and reporting tool
 Name: abrt
-Version: 2.0.1
-Release: %{?pkg_release}.1.R
+Version: 2.0.2
+Release: 4%{?dist}.1.R
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
 Source: https://fedorahosted.org/released/%{name}/%{name}-%{version}.tar.gz
 Source1: abrt.init
 Source2: abrt-ccpp.init
+Source3: abrt-oops.init
 Patch0: remove_libreport_python.patch
 Patch1: blacklist.patch
 Patch2: allow_bz_for_koops.patch
-Patch3: low_bt_rating.patch
+Patch3: retrace_addr.patch
+Patch4: retrace_client_flush.patch
+Patch5: prgname.patch
 Patch100: abrt-2.0.0-read-fedora-release.patch
 BuildRequires: dbus-devel
 BuildRequires: gtk2-devel
@@ -50,6 +41,8 @@ BuildRequires: intltool
 BuildRequires: libtool
 BuildRequires: nss-devel
 BuildRequires: texinfo
+BuildRequires: asciidoc
+BuildRequires: xmlto
 
 # for rhel6
 %if 0%{?rhel} >= 6
@@ -102,6 +95,7 @@ Development libraries and headers for libreport.
 %package -n libreport-gtk
 Summary: GTK frontend for libreport
 Group: User Interface/Desktops
+Requires: libreport = %{version}-%{release}
 
 %description -n libreport-gtk
 Applications for reporting bugs using libreport backend.
@@ -125,7 +119,7 @@ Development libraries and headers for %{name}.
 Summary: %{name}'s gui
 Group: User Interface/Desktops
 Requires: %{name} = %{version}-%{release}
-Requires: libreport-gtk
+Requires: libreport-gtk = %{version}-%{release}
 # we used to have abrt-applet, now abrt-gui includes it:
 Provides: abrt-applet = %{version}-%{release}
 Obsoletes: abrt-applet < 0.0.5
@@ -270,7 +264,9 @@ generation service over a network using HTTP protocol.
 %patch0 -p1 -b .libreport_py
 %patch1 -p1 -b .blacklist
 %patch2 -p1 -b bz_for_oops
-%patch3 -p1 -b low_rating
+%patch3 -p1 -b retrace_addr
+%patch4 -p1 -b flush_messages
+%patch5 -p1 -b prgname
 %patch100 -p1
 
 %build
@@ -291,6 +287,7 @@ find $RPM_BUILD_ROOT -name '*.la' -or -name '*.a' | xargs rm -f
 mkdir -p ${RPM_BUILD_ROOT}/%{_initrddir}
 install -m 755 %SOURCE1 ${RPM_BUILD_ROOT}/%{_initrddir}/abrtd
 install -m 755 %SOURCE2 ${RPM_BUILD_ROOT}/%{_initrddir}/abrt-ccpp
+install -m 755 %SOURCE3 ${RPM_BUILD_ROOT}/%{_initrddir}/abrt-oops
 mkdir -p $RPM_BUILD_ROOT/var/cache/abrt-di
 mkdir -p $RPM_BUILD_ROOT/var/run/abrt
 mkdir -p $RPM_BUILD_ROOT/var/spool/abrt
@@ -342,7 +339,18 @@ chown -R abrt:abrt %{_localstatedir}/cache/abrt-di
 #if [ $1 -eq 1 ]; then
 /sbin/chkconfig --add abrt-ccpp
 #fi
-#systemd: TODO
+
+%if %{?with_systemd}
+if [ "$1" -eq "0" ] ; then
+    /bin/systemctl stop abrt-ccpp.service >/dev/null 2>&1 || :
+    /bin/systemctl disable abrt-ccpp.service >/dev/null 2>&1 || :
+fi
+%endif
+
+%post addon-kerneloops
+if [ $1 -eq 1 ]; then
+    /sbin/chkconfig --add abrt-oops
+fi
 
 %post retrace-server
 /sbin/install-info %{_infodir}/abrt-retrace-server %{_infodir}/dir 2> /dev/null || :
@@ -366,7 +374,26 @@ if [ "$1" -eq "0" ] ; then
   service abrt-ccpp stop >/dev/null 2>&1
   /sbin/chkconfig --del abrt-ccpp
 fi
-#systemd: TODO
+#systemd (not tested):
+%if %{?with_systemd}
+if [ "$1" -eq "0" ] ; then
+    /bin/systemctl stop abrt-ccpp.service >/dev/null 2>&1 || :
+    /bin/systemctl disable abrt-ccpp.service >/dev/null 2>&1 || :
+fi
+%endif
+
+%preun addon-kerneloops
+if [ "$1" -eq "0" ] ; then
+    service abrt-oops stop >/dev/null 2>&1
+    /sbin/chkconfig --del abrt-oops
+fi
+#systemd (not tested):
+%if %{?with_systemd}
+if [ "$1" -eq "0" ] ; then
+    /bin/systemctl stop abrt-oops.service >/dev/null 2>&1 || :
+    /bin/systemctl disable abrt-oops.service >/dev/null 2>&1 || :
+fi
+%endif
 
 %preun retrace-server
 if [ "$1" = 0 ]; then
@@ -383,20 +410,16 @@ fi
 %endif
 
 %post gui
-# update icon cache
-touch --no-create %{_datadir}/icons/hicolor || :
-if [ -x %{_bindir}/gtk-update-icon-cache ]; then
-  %{_bindir}/gtk-update-icon-cache --quiet %{_datadir}/icons/hicolor || :
-fi
+touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
 
 %post libs -p /sbin/ldconfig
 
 %postun libs -p /sbin/ldconfig
 
 %postun gui
-touch --no-create %{_datadir}/icons/hicolor || :
-if [ -x %{_bindir}/gtk-update-icon-cache ]; then
-  %{_bindir}/gtk-update-icon-cache --quiet %{_datadir}/icons/hicolor || :
+if [ $1 -eq 0 ] ; then
+    touch --no-create %{_datadir}/icons/hicolor &>/dev/null
+    gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 fi
 
 %posttrans
@@ -417,8 +440,29 @@ if [ "$1" -eq "0" ]; then
     # from 1.x to 2.x without restarting
     service abrt-ccpp restart >/dev/null 2>&1 || :
 fi
-#systemd: TODO
 
+#systemd
+%if %{?with_systemd}
+if [ "$1" -eq "0" ]; then
+    /bin/systemctl try-restart abrt-ccpp.service >/dev/null 2>&1 || :
+fi
+%endif
+
+%posttrans addon-kerneloops
+if [ "$1" -eq "0" ]; then
+    # this is a tmp hack to set-up the ccpp hook when updating
+    # from 1.x to 2.x without restarting
+    service abrt-oops restart >/dev/null 2>&1 || :
+fi
+#systemd
+%if %{?with_systemd}
+if [ "$1" -eq "0" ]; then
+    /bin/systemctl try-restart abrt-oops.service >/dev/null 2>&1 || :
+fi
+%endif
+
+%posttrans gui
+gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 
 %files -f %{name}.lang
 %defattr(-,root,root,-)
@@ -449,9 +493,10 @@ fi
 %dir %{_sysconfdir}/%{name}/events
 #%dir %{_libdir}/%{name}
 %{_mandir}/man8/abrtd.8.gz
-%{_mandir}/man5/%{name}.conf.5.gz
+%{_mandir}/man5/abrt.conf.5.gz
+%{_mandir}/man5/abrt_event.conf.5.gz
 # {_mandir}/man5/pyhook.conf.5.gz
-%{_mandir}/man7/%{name}-plugins.7.gz
+%{_mandir}/man7/abrt-plugins.7.gz
 %{_datadir}/dbus-1/system-services/com.redhat.abrt.service
 
 %files -n libreport
@@ -510,7 +555,7 @@ fi
 %{_bindir}/abrt-action-analyze-c
 %{_bindir}/abrt-action-trim-files
 %attr(4755, abrt, abrt) %{_bindir}/abrt-action-install-debuginfo
-%{_bindir}/abrt-action-analyzecore.py*
+%{_bindir}/abrt-action-analyze-core.py*
 %{_bindir}/abrt-action-install-debuginfo.py*
 %{_bindir}/abrt-action-generate-backtrace
 %{_bindir}/abrt-action-analyze-backtrace
@@ -520,12 +565,16 @@ fi
 %{_sysconfdir}/%{name}/events/reanalyze_LocalGDB.xml
 %{_sysconfdir}/%{name}/events/analyze_RetraceServer.xml
 %{_sysconfdir}/%{name}/events/reanalyze_RetraceServer.xml
+%{_mandir}/man*/abrt-action-trim-files.*
+%{_mandir}/man*/abrt-action-generate-backtrace.*
+%{_mandir}/man*/abrt-action-analyze-backtrace.*
 
 %files addon-kerneloops
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/%{name}/plugins/Kerneloops.conf
 %{_sysconfdir}/%{name}/events/report_Kerneloops.xml
 %config(noreplace) %{_sysconfdir}/%{name}/events.d/koops_events.conf
+%{_initrddir}/abrt-oops
 %{_mandir}/man7/abrt-KerneloopsReporter.7.gz
 %{_bindir}/abrt-dump-oops
 %{_bindir}/abrt-action-analyze-oops
@@ -536,12 +585,14 @@ fi
 %{_sysconfdir}/%{name}/events/report_Logger.conf
 %{_mandir}/man7/abrt-Logger.7.gz
 %{_bindir}/abrt-action-print
+%{_mandir}/man*/abrt-action-print.*
 
 %files plugin-mailx
 %defattr(-,root,root,-)
 %{_sysconfdir}/%{name}/events/report_Mailx.xml
 %config(noreplace) %{_sysconfdir}/%{name}/events.d/mailx_events.conf
 %{_mandir}/man7/abrt-Mailx.7.gz
+%{_mandir}/man*/abrt-action-mailx.*
 %{_bindir}/abrt-action-mailx
 
 %files plugin-bugzilla
@@ -601,12 +652,65 @@ fi
 %{_infodir}/abrt-retrace-server*
 
 %changelog
-* Fri Apr 22 2011 Arkady L. Shane <ashejn@yandex-team.ru> 2.0.1-2.1.R
+* Fri May 13 2011 Arkady L. Shane <ashejn@yandex-team.ru> 2.0.2-4.1.R
+- get product name from /etc/fedora-release
+
+* Sun May 08 2011 Jiri Moskovcak <jmoskovc@redhat.com> 2.0.2-4
+- fixed prgname, fixes problem where Gnome3 shows lowres icons instead
+  nice highres ones
+
+* Fri May 06 2011 Christopher Aillon <caillon@redhat.com> - 2.0.2-3
+- Update icon cache scriptlet per packaging guidelines
+
+* Fri May 06 2011 Jiri Moskovcak <jmoskovc@redhat.com> 2.0.2-2
+- flush messages in retrace client
+
+* Thu May 05 2011 Jiri Moskovcak <jmoskovc@redhat.com> 2.0.2-1
+- updated translation
+- new icons (thanks to Lapo Calamandrei)
+- changed address of retrace01 to retrace
+- fixed problem with not trusted ssl certificate #695977
+- #692713 Dialogue Box Buttons Wrong Way Around
+- #695452 abrt crashing when trying to generate backtrace
+- #698458 RFE: report separators between reports in abrt.log
+- #699098 999 futile attempts to delete excess debuginfo
+- #691881 GUI doesn't sort by last occurrence by default, and doesn't remember that sort order if you set it and restart the app
+- #698418 Can't access '/var/spool/abrt/ccpp-2011-04-18-11:53:22-2661': Permission denied
+- #698934 abrt-applet segfault on abrtd restart
+- #695450 Retrace client - show meaningful message on failure
+- #616407 RFE: Change abrt to catch TRAP signal crashes
+- #584352 running service abrtd a non-root user doesn't show error
+- retrace client: fail on servers with problematic SSL certificates (kklic@redhat.com)
+- retrace-client: Load system-wide certificates. Move NSS init/shutdown to main, as it shouldn't be run multiple times. (kklic@redhat.com)
+- abrt-cli: update manpage. Closes #243 (dvlasenk@redhat.com)
+- move abrt-handle-crashdump to abrt-cli package. No code changes (dvlasenk@redhat.com)
+- add abrt-action-print manpage. Closes #238 (dvlasenk@redhat.com)
+- add abrt-action-trim-files manpage. Closes #241 (dvlasenk@redhat.com)
+- added abrt-action-generate-backtrace manpage (dvlasenk@redhat.com)
+- add abrt-action-analyze-backtrace manpage. Closes #227 (dvlasenk@redhat.com)
+- retrace server: do not create zombie workers (mtoman@redhat.com)
+- btparser: Remove top frame with address 0x0000 (jump to NULL) during normalization to avoid incorrect backtrace ratings (rhbz#639049) (kklic@redhat.com)
+- abrt-gui: better list refreshing. Closes #251 (dvlasenk@redhat.com)
+- fix for spurious "Lock file 'DIR/.lock' is locked by process PID" message (dvlasenk@redhat.com)
+- Asciidoc manpage support; abrt-action-mailx manpage (kklic@redhat.com)
+- list-dsos: don't list the same library multiple times (jmoskovc@redhat.com)
+- call abrt-action-trim-files from abrt-action-install-debuginfo (dvlasenk@redhat.com)
+- list-dsos: added package install time trac#123 (jmoskovc@redhat.com)
+- retrace client: handle messages in HTTP body (mtoman@redhat.com)
+- retrace server: remove chroot on failure (mtoman@redhat.com)
+- spec: use versioned deps on libreport (jmoskovc@redhat.com)
+- generate abrt version from git (npajkovs@redhat.com)
+- abrt-action-trim-files needs to be suided rhbz#699098 (jmoskovc@redhat.com)
+- gui: suppress printing dumpdir access errors (bz#698418) (mlichvar@redhat.com)
+- Do not leave dump dir locked by abrt-action-generate-backtrace. (kklic@redhat.com)
+- wizard: expand explanatory text on 1st screen. Closes 201 (dvlasenk@redhat.com)
+- gui: fixed the OK and CANCEL buttons order in event config dialog (jmoskovc@redhat.com)
+- Make abrt-action-list-dsos.py take -m maps -o dsos params; and abrt-action-analyze-core.py to take -o build_ids param (dvlasenk@redhat.com)
+- abrt-action-install-debuginfo.py: don't die on some Yum exceptions. closes bz#681281 (dvlasenk@redhat.com)
+
+* Thu Apr 21 2011 Jiri Moskovcak <jmoskovc@redhat.com> 2.0.1-2
 - don't allow reporting of backtrace with rating = 0 rhbz#672023
 - use versioned deps on libreport
-
-* Thu Apr 21 2011 Arkady L. Shane <ashejn@yandex-team.ru> 2.0.1-1.1.R
-- get product name from /etc/fedora-release
 
 * Wed Apr 20 2011 Jiri Moskovcak <jmoskovc@redhat.com> 2.0.1-1
 - updated to 2.0.1

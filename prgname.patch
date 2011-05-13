@@ -1,0 +1,51 @@
+commit e4200116d227ac159d45d84bfbdbaf85d188c4bb
+Author: Denys Vlasenko <dvlasenk@redhat.com>
+Date:   Fri May 6 22:27:40 2011 +0200
+
+    reinstated g_set_prgname("abrt")
+    
+    Signed-off-by: Denys Vlasenko <dvlasenk@redhat.com>
+
+diff --git a/src/applet/applet.c b/src/applet/applet.c
+index e965a3b..aff8284 100644
+--- a/src/applet/applet.c
++++ b/src/applet/applet.c
+@@ -221,7 +221,7 @@ int main(int argc, char** argv)
+ 
+     /* Parse options */
+     int opt;
+-    while ((opt = getopt(argc, argv, "dv")) != -1)
++    while ((opt = getopt(argc, argv, "v")) != -1)
+     {
+         switch (opt)
+         {
+diff --git a/src/gui-gtk/main.c b/src/gui-gtk/main.c
+index e9b175a..39d9f7e 100644
+--- a/src/gui-gtk/main.c
++++ b/src/gui-gtk/main.c
+@@ -204,6 +204,8 @@ int main(int argc, char **argv)
+      * desktops which uses the name to find the corresponding .desktop file
+      * trac#180
+      */
++    g_set_prgname("abrt");
++
+     gtk_init(&argc, &argv);
+ 
+     /* Can't keep these strings/structs static: _() doesn't support that */
+diff --git a/src/gui-wizard-gtk/main.c b/src/gui-wizard-gtk/main.c
+index d1341b4..cdcf9e4 100644
+--- a/src/gui-wizard-gtk/main.c
++++ b/src/gui-wizard-gtk/main.c
+@@ -69,6 +69,12 @@ int main(int argc, char **argv)
+     textdomain(PACKAGE);
+ #endif
+ 
++    /* without this the name is set to argv[0] which confuses
++     * desktops which uses the name to find the corresponding .desktop file
++     * trac#180
++     */
++    g_set_prgname("abrt");
++
+     gtk_init(&argc, &argv);
+ 
+     /* Can't keep these strings/structs static: _() doesn't support that */

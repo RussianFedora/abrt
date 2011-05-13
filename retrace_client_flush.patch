@@ -1,0 +1,18 @@
+commit a74f116ad098343282f5be157fd59e4e4aba4705
+Author: Michal Toman <mtoman@redhat.com>
+Date:   Fri May 6 11:25:55 2011 +0200
+
+    retrace client: flush stdout after each status message in batch mode
+
+diff --git a/src/plugins/abrt-retrace-client.c b/src/plugins/abrt-retrace-client.c
+index 5ade792..1d46a8c 100644
+--- a/src/plugins/abrt-retrace-client.c
++++ b/src/plugins/abrt-retrace-client.c
+@@ -844,6 +844,7 @@ static int run_batch(bool delete_temp_archive)
+         sleep(10);
+         status(task_id, task_password, &task_status, &status_message);
+         puts(status_message);
++        fflush(stdout);
+     }
+     if (0 == strcmp(task_status, "FINISHED_SUCCESS"))
+     {

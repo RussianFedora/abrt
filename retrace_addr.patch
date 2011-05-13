@@ -1,0 +1,19 @@
+commit 1886eee8e109daa5e8db4e0938533b6dcff17b3f
+Author: Karel Klic <kklic@redhat.com>
+Date:   Thu May 5 17:39:07 2011 +0200
+
+    URL retrace01.fpo.org -> retrace.fpo.org
+
+diff --git a/src/plugins/analyze_RetraceServer.xml.in b/src/plugins/analyze_RetraceServer.xml.in
+index f91bf76..497fa13 100644
+--- a/src/plugins/analyze_RetraceServer.xml.in
++++ b/src/plugins/analyze_RetraceServer.xml.in
+@@ -9,7 +9,7 @@
+     <options>
+         <option type="text" name="RETRACE_SERVER_URL">
+            <_label>Retrace server URL</_label>
+-           <default-value>retrace01.fedoraproject.org</default-value>
++           <default-value>retrace.fedoraproject.org</default-value>
+            <allow-empty>no</allow-empty>
+            <_description>Address of the retrace server</_description>
+        </option>
