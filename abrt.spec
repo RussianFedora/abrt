@@ -10,7 +10,7 @@
 Summary: Automatic bug detection and reporting tool
 Name: abrt
 Version: 2.0.2
-Release: 4%{?dist}.1.R
+Release: 5%{?dist}.1.R
 License: GPLv2+
 Group: Applications/System
 URL: https://fedorahosted.org/abrt/
@@ -423,43 +423,13 @@ if [ $1 -eq 0 ] ; then
 fi
 
 %posttrans
-if [ "$1" -eq "0" ]; then
-    service abrtd condrestart >/dev/null 2>&1 || :
-fi
-#systemd
-%if %{?with_systemd}
-if [ "$1" -eq "0" ]; then
-    /bin/systemctl try-restart abrtd.service >/dev/null 2>&1 || :
-fi
-%endif
+service abrtd condrestart >/dev/null 2>&1 || :
 
 %posttrans addon-ccpp
-if [ "$1" -eq "0" ]; then
-    #service abrt-ccpp condrestart >/dev/null 2>&1 || :
-    # this is a tmp hack to set-up the ccpp hook when updating
-    # from 1.x to 2.x without restarting
-    service abrt-ccpp restart >/dev/null 2>&1 || :
-fi
-
-#systemd
-%if %{?with_systemd}
-if [ "$1" -eq "0" ]; then
-    /bin/systemctl try-restart abrt-ccpp.service >/dev/null 2>&1 || :
-fi
-%endif
+service abrt-ccpp condrestart >/dev/null 2>&1 || :
 
 %posttrans addon-kerneloops
-if [ "$1" -eq "0" ]; then
-    # this is a tmp hack to set-up the ccpp hook when updating
-    # from 1.x to 2.x without restarting
-    service abrt-oops restart >/dev/null 2>&1 || :
-fi
-#systemd
-%if %{?with_systemd}
-if [ "$1" -eq "0" ]; then
-    /bin/systemctl try-restart abrt-oops.service >/dev/null 2>&1 || :
-fi
-%endif
+service abrt-oops condrestart >/dev/null 2>&1 || :
 
 %posttrans gui
 gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
@@ -652,6 +622,10 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 %{_infodir}/abrt-retrace-server*
 
 %changelog
+* Sat May 13 2011 Arkady L. Shane <ashejn@yandex-team.ru> 2.0.2-5.1.R
+- Do not force service startup in %%posttrans, as it breaks live media
+  creation (rhbz#704415) (Fedora abrt 2.0.2-5)
+
 * Fri May 13 2011 Arkady L. Shane <ashejn@yandex-team.ru> 2.0.2-4.1.R
 - get product name from /etc/fedora-release
 
